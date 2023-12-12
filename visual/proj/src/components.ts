@@ -70,13 +70,6 @@ export class Register_8{
         this.dataBus.write(this.data);
         
     }
-    READ_DBUS_SET(){
-        this.READ_DBUS = true;
-
-    }
-    WRITE_DBUS_SET(){
-        this.WRITE_DBUS = true;
-    }
     clearFlags(){
         this.READ_DBUS = false;
         this.WRITE_DBUS = false;
@@ -138,15 +131,7 @@ export class ProgramCounter{
         this.PC_LOW = lowByte;
         this.PC_HIGH= highByte;
     }
-    PC_INCREMENT_SET(){
-        this.PC_INCREMENT = true;
-    }
-    WRITE_ABUS_SET(){
-        this.WRITE_ABUS = true;
-    }
-    READ_ABUS_SET(){
-        this.READ_ABUS = true;
-    }
+
     clearFlags(){
         this.PC_INCREMENT = false;
         this.WRITE_ABUS = false;
@@ -183,12 +168,6 @@ export class Memory{
         this.MEMORY_READ = false;
         this.MEMORY_WRITE = false;
     }
-    MEMORY_READ_SET(){
-        this.MEMORY_READ = true;
-    }
-    MEMORY_WRITE_SET(){
-        this.MEMORY_WRITE = true;
-    }
     readMemory(){
         if(!this.MEMORY_READ) return;
 
@@ -207,4 +186,59 @@ export class Memory{
         this.MEMORY_READ = false;
         this.MEMORY_WRITE = false;
     }
+};
+
+
+
+export class ALU{
+    ALU_buffer : Register_8;
+    public dataBus : Bus
+    public ZERO_FLAG : boolean
+    public SUBTRACT_FLAG : boolean
+    public CARRY_FLAG  : boolean
+    public FLAG_SET_ENABLE : boolean
+    A : Register_8
+    constructor(dataBus: Bus,A : Register_8){
+        this.ALU_buffer = new Register_8(dataBus);
+        this.dataBus = dataBus;
+        this.ZERO_FLAG = false;
+        this.CARRY_FLAG = false;
+        this.SUBTRACT_FLAG = false;
+        this.FLAG_SET_ENABLE = false;
+        this.A = A
+        // if numbers are considered "unsigned". if a calculation is wrong because of out of bounds, then SET CARRY FLAG
+        // if numbers are considered "signed". if a calculation is wrong because of out of bounds, then SET OVERFLOW FLAG
+    }
+    operate(){
+        // A operation (+,-) temp
+        let result
+        if(this.SUBTRACT_FLAG){
+            result = this.A.data - this.ALU_buffer.data
+        }
+        else{
+            result = this.A.data + this.ALU_buffer.data
+        }
+        if(this.FLAG_SET_ENABLE){
+            this.ZERO_FLAG = result == 0
+            this.CARRY_FLAG = result > 0xFF;
+        }
+        this.ALU_buffer.data = result;
+    }
+    writeBus(){
+        if(!this.ALU_buffer.WRITE_DBUS) return;
+        this.ALU_buffer.writeBus();
+        this.ALU_buffer.data = 0x00
+    }
+    readBus(){
+        // console.log("BUS -> ALU")
+        if(!this.ALU_buffer.READ_DBUS) return;
+        this.ALU_buffer.readBus();
+        this.operate();
+    }
+    clearFlags(){
+        this.ALU_buffer.clearFlags();
+        this.FLAG_SET_ENABLE = false;
+        this.SUBTRACT_FLAG = false;
+    }
+
 };
