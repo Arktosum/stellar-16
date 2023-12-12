@@ -1,0 +1,83 @@
+.pulse-on{
+  width:100px;
+  height: 100px;
+  background-color: lightgreen;
+}
+
+.pulse-off{
+  width:100px;
+  height: 100px;
+  background-color: lightcoral;
+}
+.flex{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#a-register{
+  width:100px;
+  height:100px;
+  background-color: gray;
+  position: absolute;
+  top : 500px;
+  left : 800px;
+  
+}
+#b-register{
+  width:100px;
+  height:100px;
+  background-color: gray;
+  position: absolute;
+  top : 500px;
+  left : 600px;
+}
+#ir-register{
+  width:100px;
+  height:100px;
+  background-color: gray;
+  position: absolute;
+  top : 500px;
+  left : 1000px;
+}
+#h-register{
+  width:100px;
+  height:100px;
+  background-color: gray;
+  position: absolute;
+  top : 200px;
+  left : 800px;
+}
+#l-register{
+  width:100px;
+  height:100px;
+  background-color: gray;
+  position: absolute;
+  top : 200px;
+  left : 900px;
+}
+#pc-register{
+  width:200px;
+  height:100px;
+  background-color: gray;
+  position: absolute;
+  top : 200px;
+  left : 500px;
+}
+#data-bus{
+  width:600px;
+  height:50px;
+  background-color: gray;
+  position: absolute;
+  top : 400px;
+  left : 500px;
+}
+#address-bus{
+  width:600px;
+  height:50px;
+  background-color: gray;
+  position: absolute;
+  top : 100px;
+  left : 500px;
+}
