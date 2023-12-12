@@ -68,7 +68,6 @@ export class Register_8{
     writeBus(){
         if(!this.WRITE_DBUS) return;
         this.dataBus.write(this.data);
-        
     }
     clearFlags(){
         this.READ_DBUS = false;
@@ -197,6 +196,7 @@ export class ALU{
     public SUBTRACT_FLAG : boolean
     public CARRY_FLAG  : boolean
     public FLAG_SET_ENABLE : boolean
+    public ALU_INCREMENT : boolean
     A : Register_8
     constructor(dataBus: Bus,A : Register_8){
         this.ALU_buffer = new Register_8(dataBus);
@@ -205,6 +205,7 @@ export class ALU{
         this.CARRY_FLAG = false;
         this.SUBTRACT_FLAG = false;
         this.FLAG_SET_ENABLE = false;
+        this.ALU_INCREMENT = false;
         this.A = A
         // if numbers are considered "unsigned". if a calculation is wrong because of out of bounds, then SET CARRY FLAG
         // if numbers are considered "signed". if a calculation is wrong because of out of bounds, then SET OVERFLOW FLAG
@@ -212,6 +213,9 @@ export class ALU{
     operate(){
         // A operation (+,-) temp
         let result
+        if(this.ALU_INCREMENT){
+            this.ALU_buffer.data = 1;
+        }
         if(this.SUBTRACT_FLAG){
             result = this.A.data - this.ALU_buffer.data
         }
@@ -239,6 +243,7 @@ export class ALU{
         this.ALU_buffer.clearFlags();
         this.FLAG_SET_ENABLE = false;
         this.SUBTRACT_FLAG = false;
+        this.ALU_INCREMENT = false;
     }
 
 };

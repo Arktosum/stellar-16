@@ -31,6 +31,15 @@
   background-color: gray;
   position: absolute;
   top : 500px;
+  left : 400px;
+}
+
+#alu{
+  width:100px;
+  height:100px;
+  background-color: gray;
+  position: absolute;
+  top : 500px;
   left : 600px;
 }
 #ir-register{
