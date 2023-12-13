@@ -6,24 +6,74 @@ const PROGRAM =
 `
 
 #start 0x6000
-#label first_num 0x5000
-#label second_num 0x5001
-#memset first_num 0x05
-#memset second_num 0xff
+#label a 0x5000
+#label b 0x5001
+#label c 0x5002
+#label n 0x5003
 
-add_m first_num : loop
+lda a : fibo
+ldb b
+add_b
 movab
-dec_m second_num
+lda b
+sta a
 movba
-jnz loop
-sta 0x5002
+sta b
+dec_m n
+jnz fibo
+ret
 
+#main
+
+ldi 0x00 : main
+sta a
+ldi 0x01
+sta b
+ldi 0x00
+sta c
+ldi 0x0a
+sta n
+jsr fibo
+jmp main
 hlt
 
 `
 // string, address
 
+const fibo = `
 
+
+#label a 0x5000
+#label b 0x5001
+#label c 0x5002
+#label n 0x5003
+#memset a 0x00
+#memset b 0x01
+#memset c 0x00
+#memset n 0xff
+lda b : loop
+movab
+lda a
+add_b
+sta c
+lda b
+sta a
+lda c
+sta b
+dec_m n
+jnz loop
+
+
+`
+
+const multiply = `
+#start 0x6000
+#label first_num 0x5000
+#label second_num 0x5001
+#memset first_num 0x07
+#memset second_num 0xa
+
+`
 
 let labels : Record<string, number> = {}
 let current_address = 0x0000
@@ -59,6 +109,9 @@ for(let line of prog_lines){
             let address = parseLabelAddress(split_line[1])
             let data = parseInt(split_line[2])
             pushAddressData(address, data,false)
+        }
+        else if(process == "#main"){
+            program.startAddress = current_address
         }
         continue;
     }

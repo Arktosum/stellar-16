@@ -1,4 +1,4 @@
-import { Bus, HLRegister, Memory, ProgramCounter, Register_8 ,ALU} from "./components"
+import { Bus, HLRegister, Memory, ProgramCounter, Register_8 ,ALU, STACKPOINTER} from "./components"
 import OPCODES from "./opcodes"
 let opcodes = new OPCODES();
 
@@ -7,6 +7,7 @@ export default class CPU{
     public B: Register_8 
     public IR: Register_8 
     public HL : HLRegister
+    public STACKP : STACKPOINTER
     public PC : ProgramCounter
     public addressBus : Bus
     public dataBus : Bus
@@ -26,11 +27,12 @@ export default class CPU{
       this.A = new Register_8(this.dataBus);
       this.B = new Register_8(this.dataBus);
       this.IR = new Register_8(this.dataBus);
+      this.STACKP = new STACKPOINTER(this.dataBus,this.addressBus);
       this.HL = new HLRegister(this.dataBus,this.addressBus)
-      this.PC = new ProgramCounter(this.addressBus);
+      this.PC = new ProgramCounter(this.dataBus,this.addressBus);
       this.ALU = new ALU(this.dataBus,this.A)
       this.registers = [
-        this.A,this.B,this.IR,this.HL.H,this.HL.L
+        this.A,this.B,this.IR,this.HL.H,this.HL.L,
       ];
       this.HALT_CPU = false;
   
@@ -44,18 +46,10 @@ export default class CPU{
       }
       this.ALU.clearFlags();
       this.PC.clearFlags();
+      this.STACKP.clearFlags();
       this.memory.clearFlags();
     }
     setControlSignals(){
-      // MEMORY - MEMORY_READ ,MEMORY_WRITE (2)
-      // REGISTER (A , B, IR ) - READ_DBUS,WRITE_DBUS (2*3 = 6)
-      // PC - READ_ABUS, WRITE_ABUS,PC_INCREMENT (3)
-      // HL - READ_DBUS,WRITE_DBUS, READ_ABUS, WRITE_ABUS (4&2 = 8)
-      // CPU - HALT (1)
-      // 20 SIGNALS
-
-      // fetch,ins,fetch,ins,fetch,ins....
-      // microInstructions end when instruction is over.
       let JMP = opcodes.mnemonic("JMP").microcode
       let JMP_CONDITIONAL = opcodes.mnemonic("JNZ").microcode
       if(this.ins_end){
@@ -79,6 +73,7 @@ export default class CPU{
             current_instruction = this.ALU.CARRY_FLAG ? JMP_CONDITIONAL : JMP
         }
         if(current_instruction_name == "JNZ"){
+          if(this.ALU.ZERO_FLAG){ console.log("NOT JUMPING!")}
             current_instruction = this.ALU.ZERO_FLAG ? JMP_CONDITIONAL : JMP
         }
 
@@ -87,7 +82,10 @@ export default class CPU{
     }
     executeMicrocode(microInstructions : number[] ){
       let CONTROL_SIGNAL_MAP= [
-        (state:boolean)=>{this.ALU.ALU_INCREMENT = state},(state:boolean)=>{this.ALU.SUBTRACT_FLAG = state},
+        (state:boolean)=>{this.PC.WRITE_HIGH_DBUS = state},           (state:boolean)=>{this.PC.WRITE_LOW_DBUS = state},
+        (state:boolean)=>{this.STACKP.DECREMENT = state},           (state:boolean)=>{this.STACKP.INCREMENT = state},
+        (state:boolean)=>{this.STACKP.READ_DBUS = state},           (state:boolean)=>{this.STACKP.WRITE_ABUS = state},
+        (state:boolean)=>{this.ALU.ALU_INCREMENT = state},          (state:boolean)=>{this.ALU.SUBTRACT_FLAG = state},
         (state:boolean)=>{this.memory.MEMORY_READ = state},         (state:boolean)=>{this.memory.MEMORY_WRITE = state},
         (state:boolean)=>{this.A.READ_DBUS = state},                (state:boolean)=>{this.A.WRITE_DBUS = state},
         (state:boolean)=>{this.B.READ_DBUS = state},                (state:boolean)=>{this.B.WRITE_DBUS = state},
@@ -138,6 +136,7 @@ export default class CPU{
       for(let register of this.registers){
         register.writeBus();
       }
+      this.STACKP.writeBus();
       this.HL.writeBus();
       this.PC.writeBus();
       this.memory.readMemory(); // memory read and output to data bus
@@ -149,10 +148,13 @@ export default class CPU{
       for(let register of this.registers){
         register.readBus();
       }
+      this.STACKP.readBus();
       this.ALU.readBus();
       this.HL.readBus();
       this.PC.readBus();
       this.PC.increment();
+      this.STACKP.increment();
+      this.STACKP.decrement();
     }
     highLevel(){
       // calculation and ALU to bus ( just in case )

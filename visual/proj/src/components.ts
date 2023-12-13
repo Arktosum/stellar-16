@@ -32,13 +32,6 @@ export class HLRegister{
         let word = BytesToWord(this.H.data,this.L.data);
         this.addressBus.write(word);
     }
-    READ_ABUS_SET(){
-        this.READ_ABUS = true;
-    }
-    WRITE_ABUS_SET(){
-        this.WRITE_ABUS = true;
-    }
-
     clearFlags(){
         this.READ_ABUS = false;
         this.WRITE_ABUS = false;
@@ -46,7 +39,54 @@ export class HLRegister{
         this.L.clearFlags();
     }
 }
-  
+export class STACKPOINTER{
+    dataBus : Bus 
+    addressBus : Bus 
+
+    READ_DBUS  : boolean
+    WRITE_ABUS  : boolean
+    INCREMENT  : boolean
+    DECREMENT  : boolean
+    H : number
+    L : number
+    constructor(dataBus : Bus  , addressBus : Bus ){
+        // Read and write data bus individually
+        // Read and write Address bus jointly.
+        this.H = 0x20
+        this.L = 0x00
+
+        this.dataBus = dataBus;
+        this.addressBus = addressBus;
+
+        this.READ_DBUS = false;
+        this.WRITE_ABUS = false;
+
+        this.INCREMENT = false;
+        this.DECREMENT = false;
+    }
+    increment(){
+        if(this.INCREMENT){ this.L++;}
+    }
+    decrement(){
+        if(this.DECREMENT){this.L--;}
+    }
+    readBus(){
+        // reading from data bus. so bute
+        if(!this.READ_DBUS) return;
+        let data = this.dataBus.read();
+        this.L = data;
+    }
+    writeBus(){
+        if(!this.WRITE_ABUS) return;
+        let word = BytesToWord(this.H,this.L);
+        this.addressBus.write(word);
+    }
+    clearFlags(){
+        this.READ_DBUS = false;
+        this.WRITE_ABUS = false;
+    }
+}
+
   
 export class Register_8{
     data : uint_8
@@ -91,18 +131,25 @@ export class Bus{
 export class ProgramCounter{
     PC_HIGH  :number
     PC_LOW : number
-    bus : Bus
+    addressBus : Bus
+    dataBus : Bus
     PC_INCREMENT : boolean
     WRITE_ABUS : boolean
     READ_ABUS : boolean
-    constructor(addressBus : Bus){
+
+    WRITE_HIGH_DBUS : boolean
+    WRITE_LOW_DBUS : boolean
+    constructor(dataBus : Bus,addressBus : Bus){
         this.PC_HIGH = 0x00
         this.PC_LOW = 0x00
-        this.bus = addressBus;
+        this.addressBus = addressBus;
+        this.dataBus = dataBus;
 
         this.PC_INCREMENT = false;
         this.WRITE_ABUS = false;
         this.READ_ABUS = false;
+        this.WRITE_HIGH_DBUS = false;
+        this.WRITE_LOW_DBUS = false;
     }
     setData(data : uint_16){
         let {lowByte, highByte} = WordToBytes(data);
@@ -113,14 +160,24 @@ export class ProgramCounter{
         return BytesToWord(this.PC_HIGH,this.PC_LOW);
     }
     readBus(){
-        if(!this.READ_ABUS) return;
-        let word = this.bus.read();
-        this.setData(word);
+        if(this.READ_ABUS){
+            let word = this.addressBus.read();
+            this.setData(word);
+        }
+     
     }
     writeBus(){
-        if(!this.WRITE_ABUS) return;
-        let word = this.data();
-        this.bus.write(word);
+        if(this.WRITE_ABUS){
+            let word = this.data();
+            this.addressBus.write(word);
+        }
+        if(this.WRITE_HIGH_DBUS){
+            this.dataBus.write(this.PC_HIGH);
+        }
+        if(this.WRITE_LOW_DBUS){
+            this.dataBus.write(this.PC_LOW);
+        }
+
     }
     increment(){
         if(!this.PC_INCREMENT) return;
@@ -135,6 +192,8 @@ export class ProgramCounter{
         this.PC_INCREMENT = false;
         this.WRITE_ABUS = false;
         this.READ_ABUS = false;
+        this.WRITE_HIGH_DBUS = false;
+        this.WRITE_LOW_DBUS = false;
     }
 }
   
@@ -186,8 +245,6 @@ export class Memory{
         this.MEMORY_WRITE = false;
     }
 };
-
-
 
 export class ALU{
     ALU_buffer : Register_8;
