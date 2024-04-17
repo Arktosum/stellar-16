@@ -97,8 +97,8 @@ export class Latch{
     SRE(R : boolean, ENABLE: boolean ,S : boolean){
         this.SR(AND(R,ENABLE),AND(S,ENABLE))
     }
-    DLatch(D : boolean , CLOCK: boolean){
-        this.SRE(NOT(D),CLOCK,D)
+    DLatch(D : boolean , ENABLE: boolean){
+        this.SRE(NOT(D),ENABLE,D)
     }
     JKLatch(K:boolean,CLOCK:boolean, J:boolean){
         let r = AND3(K,CLOCK,this.Q);

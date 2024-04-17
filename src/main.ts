@@ -1,13 +1,23 @@
 import './style.css'
 import './components/test'
-import { ArithmeticUnit, Bus, Counter, Register } from './components/test';
+import { Bus, Counter, Register } from './components/test';
 
-let PULSE_WIDTH = 3
-let computerFreq = 2
 
-let freq = computerFreq*PULSE_WIDTH; // Hz
-let time = (1/freq) * 1000; // seconds
-let lastTime = Date.now();
+class Logger{
+    global_log: boolean;
+    constructor(){
+        this.global_log = true;       
+    }
+    log(message: string){
+        if(!this.global_log) return;
+        console.log(message);
+    }
+}
+
+const logger = new Logger();
+let freq = 1
+let clockMultiplier = 1
+let time = (1/freq)*1000 // ms
 let clock = false;
 
 const canvas = document.createElement('canvas');
@@ -22,23 +32,23 @@ document.body.appendChild(clockDiv);
 clockDiv.style.width = `100px`;
 clockDiv.style.height = `100px`;
 
-let iPULSE_WIDTH =0
 let clockCycles = 0;
-
 
 let OPERATION = [
     ()=>{},
-    ()=>{},
     ()=>{
-        console.log('ran')
         CONTROL_SIGNALS.REGISTER_A_OUTPUT = true;
         CONTROL_SIGNALS.REGISTER_B_STORE = true;
     }
 ]
+
 const REGISTER_A = new Register(16);
 const REGISTER_B = new Register(16);
 
 
+REGISTER_A.STORE(decimaltoBinaryArray(10,16),false,true);
+REGISTER_A.STORE(decimaltoBinaryArray(10,16),true,true);
+REGISTER_A.STORE(decimaltoBinaryArray(10,16),false,true);
 
 function decimaltoBinaryArray(decimal : number , padding : number) : boolean[] {
     let binaryString = decimal.toString(2); // Convert number to binary string
@@ -49,12 +59,8 @@ function decimaltoBinaryArray(decimal : number , padding : number) : boolean[] {
 
 
 
-REGISTER_A.STORE(decimaltoBinaryArray(10,16),false,true);
-REGISTER_A.STORE(decimaltoBinaryArray(10,16),true,true);
-REGISTER_A.STORE(decimaltoBinaryArray(10,16),false,false);
-
 const BUS = new Bus(16);
-
+let counter = new Counter(16);
 
 const CONTROL_SIGNALS = {
     REGISTER_A_STORE : false,
@@ -77,6 +83,7 @@ function boolArraytoString(array: boolean[]) {
     return output
 }
 function computerLoop(){
+    counter.SYNC(clock,true);
     
     if(CONTROL_SIGNALS.REGISTER_B_OUTPUT){
         BUS.STORE(REGISTER_B.OUTPUT(CONTROL_SIGNALS.REGISTER_B_OUTPUT));
@@ -88,50 +95,69 @@ function computerLoop(){
     REGISTER_A.STORE(BUS.value,clock,CONTROL_SIGNALS.REGISTER_A_STORE);
     REGISTER_B.STORE(BUS.value,clock,CONTROL_SIGNALS.REGISTER_B_STORE);
 
-   
+    
 }
-function outputLoop(){
-    // console.log(counter.output(false),clockCycles);
+function intializeLoop(){
     for(let signal in CONTROL_SIGNALS){
         CONTROL_SIGNALS[signal] = false;
     }
     if(clockCycles < OPERATION.length){   
         OPERATION[clockCycles]();
     }
-    console.log(CONTROL_SIGNALS)
-
-
+}
+function outputLoop(){
     let register_a_value = boolArraytoString(REGISTER_A.OUTPUT(true));
     let register_b_value = boolArraytoString(REGISTER_B.OUTPUT(true));
-    console.log("REGISTER A",register_a_value.decimal);
-    console.log("REGISTER B",register_b_value.decimal);
+    logger.log("COUNTER : "+ counter.output(true).decimal.toString(10));
+    logger.log("Register A : " +register_a_value.decimal.toString(10));
+    logger.log("Register B : " +register_b_value.decimal.toString(10));
+
 }
 
 function drawLoop() {
     if(ctx==null) return;
-    if(clock && iPULSE_WIDTH == PULSE_WIDTH-1){
-        outputLoop();
-        clockCycles++;
-    }
-    if(iPULSE_WIDTH == PULSE_WIDTH){
-        iPULSE_WIDTH = 0
-        clock = !clock;
-    }
-    clockDiv.style.backgroundColor = clock ? 'green' : 'red';
-    clockDiv.innerText = `${clockCycles}`;
-    
+    logger.log(`////////////------- START OF CLOCK CYCLE ${clockCycles}-----------////////////`);
+    intializeLoop();
+    logger.log(`------- END OF INTIALIZATION ${clockCycles}-----------`);
+    logger.log(`------- EXECUTION ${clockCycles}-----------`);
+    clock = false;
     computerLoop();
-    iPULSE_WIDTH++;
+    computerLoop();
+    clock = true;
+    computerLoop();
+    computerLoop();
+    outputLoop();
+    logger.log(`////////////------- END OF CLOCK CYCLE ${clockCycles}-----------////////////`);
+    clockCycles++;
 }
 
-function animate(){
-    let currentTime = Date.now();
-    let deltaTime = currentTime - lastTime;
-    if(deltaTime >= time){
+setInterval(()=>{
+    for(let i = 0;  i < clockMultiplier ; i++){
         drawLoop();
-        lastTime = currentTime;
     }
-    requestAnimationFrame(animate);
-}
+},time)
 
-requestAnimationFrame(animate);
+
+let prevClockSpeed = 0;
+setInterval(()=>{
+    let curr = clockCycles - prevClockSpeed;
+    prevClockSpeed = clockCycles;
+    clockDiv.innerText = `${curr} Hz`;
+},1000)
+
+
+// function animate(){
+//     requestAnimationFrame(animate);
+
+//     let currentTime = Date.now();
+//     let deltaTime = currentTime - lastTime;
+//     if(deltaTime >= time){
+//         drawLoop();
+//         lastTime = currentTime;
+//     }
+// }
+
+
+
+
+// requestAnimationFrame(animate);
