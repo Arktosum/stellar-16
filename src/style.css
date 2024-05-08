@@ -1,0 +1,10 @@
+
+
+body{
+    display: flex;
+    gap : 5px;
+}
+
+.borderize{
+    border : 1px solid green;
+}
