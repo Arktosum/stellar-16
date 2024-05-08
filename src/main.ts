@@ -1,19 +1,24 @@
+import { nADDER } from "./arithmetic";
 import { Clock } from "./clock";
+import { Counter } from "./memory";
 import { Numeric } from "./Numeric";
 
 
 
-const clock = new Clock(250);
-clock.startClock(loop);
+const clock = new Clock(100);
 
 
-let i = 0;
-function loop(){
 
+clock.startClock(pulse,pulseStart);
+
+
+const counter = new Counter(16);
+
+
+function pulseStart(){
+    const ans = Numeric.fromBinaryArray(counter.output())
+    console.log(ans.binaryString,ans.decimalString);
 }
-
-for(let i = 0 ; i <= 2**16; i++){
-    let number = i;
-    let output = Numeric.fromBinaryArray(new Numeric(number,16).binaryArray).decimal;
+function pulse(){
+    counter.ASYNC(true,clock.clock);
 }
-console.log("All done!");

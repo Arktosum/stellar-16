@@ -10,18 +10,16 @@ export class Clock{
         this.clock = false;
         this.PULSE_WIDTH = 2;
     }
-    pulse(callback: (() => void)){
-        callback();
-    }
-    startClock(callback: (() => void)){
+    startClock(pulse: (() => void) , pulseStart : ()=>void){
         setInterval(()=>{
+            pulseStart();
             this.clock = false;
             for(let i = 0; i < this.PULSE_WIDTH ; i++){
-                this.pulse(callback);
+                pulse();
             }
             this.clock = true;
             for(let i = 0; i < this.PULSE_WIDTH ; i++){
-                this.pulse(callback);
+                pulse();
             }
         },1000 * (1/this.frequency))
     }
