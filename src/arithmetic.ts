@@ -44,7 +44,7 @@ export function HEX_DISPLAY(booleanArray : boolean[]) : boolean[]{
     }
 
     let [A,B,C,D] = booleanArray
-    let [NA,NB,NC,ND] = [NOT(A),NOT(B),NOT(C),NOT(D)]
+    let [NA,NB,NC,ND] = booleanArray.map((item)=> NOT(item)) 
     let products_a = [AND(NB,ND),AND(NA,C),AND(B,C),AND(A,ND),AND3(NA,B,D),AND3(A,NB,NC)]
     let products_b = [AND(NA,NB),AND(NB,ND),AND3(NA,NC,ND),AND3(NA,C,D),AND3(A,NC,D)]
     let products_c = [AND(NA,NC),AND(NA,D),AND(NC,D),AND(NA,B),AND(A,NB)]

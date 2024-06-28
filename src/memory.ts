@@ -96,3 +96,24 @@ export class Counter{
         }
     }
 }
+
+
+export class Register{
+    bitLength: number;
+    data: FlipFlop[];
+    constructor(bitLength : number){
+        this.bitLength = bitLength;
+        this.data = [];
+        for(let i = 0; i < this.bitLength; i++){
+            this.data.push(new FlipFlop());
+        }
+
+    }
+    use(DATA : boolean[] , CLOCK : boolean, STORE : boolean, OUTPUT : boolean){
+        if(DATA.length != this.bitLength) throw new Error("Data length mismatch!");
+        
+        for(let i = 0 ; i < this.data.length; i++){
+            this.data[i].MSDATA(DATA[i],CLOCK);
+        }
+    }
+}
