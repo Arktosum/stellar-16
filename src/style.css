@@ -1,5 +1,3 @@
-
-
 body{
     display: flex;
     gap : 5px;
@@ -7,4 +5,42 @@ body{
 
 .borderize{
     border : 1px solid green;
+}
+
+
+.hex-container{
+    background-color: black;
+    width : 100px;
+    height : 200px;
+    display : flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding : 5px;
+}
+
+.hex-horiz{
+    width: 80px;
+    height : 10px;
+    border-radius: 15px;
+
+}
+.hex-vert{
+    width: 10px;
+    height : 80px;
+    border-radius: 15px;
+
+}
+.hex-flat{
+    display : flex;
+    width : 100%;
+    justify-content: space-between;
+}
+
+.good-color{
+    background-color: yellow;
+}
+
+.bad-color{
+    background-color:rgb(49, 49, 49);
 }

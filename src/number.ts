@@ -1,6 +1,5 @@
 
 
-
 export default class Numeric {
     decimal: number;
     constructor(decimalNumber: number) {

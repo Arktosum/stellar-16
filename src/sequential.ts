@@ -118,3 +118,24 @@ export class Counter {
         this.flipflops.reverse();
     }
 }
+
+
+export function DECODER2_4(A : boolean,B:boolean) : [boolean,boolean,boolean,boolean]{
+    /*
+    DECODER
+    
+    A B | Y0 Y1 Y2 Y3
+    0 0 |  1 0  0  0
+    0 1 |  0 1  0  0
+    1 0 |  0 0  1  0
+    1 1 |  0 0  0  1    
+    */
+
+    const Y0 = AND(NOT(A), NOT(B))
+    const Y1 = AND(NOT(A), B)
+    const Y2 = AND(A, NOT(B))
+    const Y3 = AND(A, B)
+    return [Y0,Y1,Y2,Y3]
+}
+
+
