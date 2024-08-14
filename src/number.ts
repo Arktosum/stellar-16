@@ -16,6 +16,12 @@ export default class Numeric {
         }
         return result
     }
+    toHex(hexLength: number): string {
+        let hex = this.decimal.toString(16);
+        const diffLength = hexLength - hex.length;
+        if (diffLength > 0) hex = "0".repeat(diffLength) + hex;
+        return "0x"+hex;
+    }
     static fromBinary(boolArray: boolean[]): Numeric {
         let boolString = "";
         for (let i = 0; i < boolArray.length; i++) {
@@ -24,5 +30,4 @@ export default class Numeric {
         const decimal = parseInt(boolString, 2);
         return new Numeric(decimal);
     }
-
 }

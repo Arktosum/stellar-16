@@ -13,7 +13,6 @@ export function AND(A: boolean, B: boolean) {
     return A && B;
 }
 
-
 export function OR_N(A: boolean[]): boolean {
     let result = false;
     for (let bool of A) {

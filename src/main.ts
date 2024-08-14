@@ -1,140 +1,188 @@
-import { AND, AND3, NOT, OR_N } from "./gates";
-import { Counter } from "./sequential";
+import { HexDisplay4 } from "./hexDisplay";
+import { MEMORY } from "./memory";
+import Numeric from "./number";
+import { Counter, Register } from "./sequential";
 
-let clock = true;
-const CLOCK_FREQUENCY = 50 // Hz
+let clock = false;
+const CLOCK_FREQUENCY = 1 // Hz
 const CLOCK_SPEED = 1000 / CLOCK_FREQUENCY // ms
-const ON_TIME = 2 // ms
+const ON_TIME = 4
 
 let inputA = false;
 let inputB = false;
 let inputC = false;
 
+const PC_DISPLAY = new HexDisplay4("Program Counter");
+const MAR_DISPLAY = new HexDisplay4("Memory Address Register");
+const MDR_DISPLAY = new HexDisplay4("Memory Data Register");
+const A_DISPLAY = new HexDisplay4("A REGISTER");
+const B_DISPLAY = new HexDisplay4("B REGISTER");
+const IR_DISPLAY = new HexDisplay4("C REGISTER");
 
-
-const clockElement = document.createElement('div');
 const btnElementA = document.createElement('button');
-const btnElementB = document.createElement('button');
-const btnElementC = document.createElement('button');
-
-btnElementA.innerText = 'A'
-btnElementB.innerText = 'B'
-btnElementC.innerText = 'C'
-
+btnElementA.innerText = 'STEP PULSE'
 
 
 
 btnElementA.addEventListener('click', (() => {
     inputA = !inputA;
     btnElementA.style.backgroundColor = inputA ? 'green' : "red";
-
 }))
-btnElementB.addEventListener('click', (() => {
-    inputB = !inputB
-    btnElementB.style.backgroundColor = inputB ? 'green' : "red";
 
-}))
-btnElementC.addEventListener('click', (() => {
-    inputC = !inputC
-    btnElementC.style.backgroundColor = inputC ? 'green' : "red";
 
-}))
-btnElementC.addEventListener('click', wave_pulse);
-document.body.appendChild(clockElement);
-
+btnElementA.addEventListener('click', wave_pulse);
 
 document.body.appendChild(btnElementA);
-document.body.appendChild(btnElementB);
-document.body.appendChild(btnElementC);
 
-clockElement.style.width = '100px';
-clockElement.style.height = '100px';
-clockElement.style.transition = 'background-color 0.1s'; // smooth transition for better visual effect
+const registerFile = document.createElement('div');
 
-const counter = new Counter(16);
+registerFile.appendChild(PC_DISPLAY.container);
+registerFile.appendChild(MAR_DISPLAY.container);
+registerFile.appendChild(MDR_DISPLAY.container);
+registerFile.appendChild(A_DISPLAY.container);
+registerFile.appendChild(B_DISPLAY.container);
+registerFile.appendChild(IR_DISPLAY.container);
+
+document.body.appendChild(registerFile);
 
 
-class HexDisplay {
-    element: HTMLDivElement;
-    constructor() {
-        this.element = document.createElement('div');
-    }
-    getHex(value: boolean[]): boolean[] {
-        const [A, B, C, D] = value;
-        const [A_, B_, C_, D_] = [NOT(A), NOT(B), NOT(C), NOT(D)]
-
-        const a = OR_N([AND3(A, B_, C_), AND3(A_, B, D), AND(A, D_), AND(A_, C), AND(B, C), AND(B_, D_)])
-        const b = OR_N([AND3(A_, C_, D_), AND3(A_, C, D), AND3(A, C_, D), AND(B_, C_), AND(B_, D_)])
-        const c = OR_N([AND(A_, C_), AND(A_, D), AND(C_, D), AND(A_, B), AND(A, B_)])
-        const d = OR_N([AND3(A_, B_, D_), AND3(B_, C, D), AND3(B, C_, D), AND3(B, C, D_), AND(A, C_)])
-        const e = OR_N([AND(B_, D_), AND(C, D_), AND(A, C), AND(A, B)])
-        const f = OR_N([AND3(A_, B, C_), AND(C_, D_), AND(B, D_), AND(A, B_), AND(A, C)])
-        const g = OR_N([AND3(A_, B, C_), AND(B_, C), AND(C, D_), AND(A, B_), AND(A, D)])
-
-        return [a, b, c, d, e, f, g]
-    }
-    display(value: boolean[]) {
-        if (value.length != 4) {
-            console.error("Invalid value for hex display! only 4 bits are allowed!");
-            return;
+class Bus {
+    data: boolean[];
+    constructor(bitLength: number) {
+        this.data = [];
+        for (let i = 0; i < bitLength; i++) {
+            this.data.push(false);
         }
-        let [a, b, c, d, e, f, g] = this.getHex(value);
-
-        const check = (isOn: boolean) => isOn ? "good-color" : "bad-color"
-        this.element.innerHTML = `<div class="hex-container">
-      <div class="hex-horiz ${check(a)}"></div>
-      <div class="hex-flat">
-        <div class="hex-vert ${check(f)}"></div>
-        <div class="hex-vert ${check(b)}"></div>
-      </div>
-      <div class="hex-horiz ${check(g)}"></div>
-      <div class="hex-flat">
-        <div class="hex-vert ${check(e)}"></div>
-        <div class="hex-vert ${check(c)}"></div>
-      </div>
-      <div class="hex-horiz ${check(d)}"></div>
-    </div>`
+    }
+    read() {
+        return this.data;
+    }
+    write(data: boolean[]) {
+        this.data = data;
     }
 }
 
-const hexDis = new HexDisplay();
-const hexDis1 = new HexDisplay();
-const hexDis2 = new HexDisplay();
-const hexDis3 = new HexDisplay();
+const ADDRESS_BUS = new Bus(16);
+const DATA_BUS = new Bus(16);
 
-document.body.appendChild(hexDis.element);
-document.body.appendChild(hexDis1.element);
-document.body.appendChild(hexDis2.element);
-document.body.appendChild(hexDis3.element);
+const A_REGISTER = new Register(16, 'A');
+const B_REGISTER = new Register(16, 'B');
+const PROGRAM_COUNTER = new Counter(16, 'PC');
+const memory = new MEMORY(16)
 
+function displayItems() {
+    console.log('-- display -- ')
+    PC_DISPLAY.display(PROGRAM_COUNTER.read(true));
+    A_DISPLAY.display(A_REGISTER.read(true));
+    console.log('-- display -- ')
+}
+
+// Counter EN
+// Counter Read
+// Counter Write
+// A Read
+// A Write
+
+function resetMicro() {
+    A_REGISTER.READ_ENABLE = false;
+    A_REGISTER.WRITE_ENABLE = false;
+
+    B_REGISTER.READ_ENABLE = false;
+    B_REGISTER.WRITE_ENABLE = false;
+
+    PROGRAM_COUNTER.ENABLE_COUNTER = false;
+    PROGRAM_COUNTER.READ_ENABLE = false;
+    PROGRAM_COUNTER.WRITE_ENABLE = false;
+
+    memory.READ_ENABLE = false;
+    memory.WRITE_ENABLE = false;
+}
+const INSTRUCTION = [
+    () => {
+
+    },
+    () => {
+    },
+    () => {
+    },
+    () => {
+    },
+    () => {
+    },
+    () => {
+    },
+    () => {
+    },
+    () => { },
+    () => { },
+    () => { },
+    () => { },
+    () => { },
+    () => { },
+    () => { },
+    () => { },
+    () => { },
+]
+
+displayItems();
+let instruction_count = 0;
 function pulse() {
-    clockElement.style.backgroundColor = clock ? 'green' : "red";
-    counter.SYNC(true, clock);
+    console.log(`-------------- PULSE START -----------------------`)
+    const pc_value = PROGRAM_COUNTER.read();
+
+    ADDRESS_BUS.write(pc_value); // AB <- PC
+    PROGRAM_COUNTER.runSync(clock, ADDRESS_BUS.read(), false); // PC <- AB
+    memory.run(clock, ADDRESS_BUS.read(), DATA_BUS.read()); // MEMORY R/W
+    DATA_BUS.write(memory.output); // DB <- MEMORY
+    A_REGISTER.run(clock, DATA_BUS.read()); // A <- DB
+    DATA_BUS.write(A_REGISTER.read()); // DB <- A
+    displayItems();
+    console.log("-------------- PULSE END -----------------------")
+}
+
+function log_wave_start() {
+    console.log('----------- CYCLE START ------------------')
+    resetMicro();
+    INSTRUCTION[instruction_count]()
 }
 
 function log_wave_end() {
-    const value = counter.read(true)
-    // getCounts()
-    hexDis.display(value.slice(0, 4));
-    hexDis1.display(value.slice(4, 8));
-    hexDis2.display(value.slice(8, 12));
-    hexDis3.display(value.slice(12, 16));
+    console.log('----------- CYCLE END ------------------')
+    instruction_count++;
+    // Update then display.
 }
-
 
 function wave_pulse() {
-    // console.log('-----------CYCLE START------------------')
+    log_wave_start();
+    // Low level;
+    console.log("-------- LOW LEVEL -------------");
+    clock = false;
     for (let i = 0; i < ON_TIME; i++) {
         pulse();
     }
-    // console.log("Negative Edge!")
-    clock = !clock;
+    console.log("--------------------------------");
+    console.log("-------- POSITIVE EDGE -------------");
+    // low to high (POSITIVE EDGE)
+    clock = true;
     for (let i = 0; i < ON_TIME; i++) {
         pulse();
     }
-    clock = !clock;
+    console.log("--------------------------------");
+    console.log("-------- HIGH LEVEL -------------");
+    // high level
+    clock = true;
+    for (let i = 0; i < ON_TIME; i++) {
+        pulse();
+    }
+    console.log("--------------------------------");
+    console.log("-------- NEGATIVE EDGE -------------");
+    // high to low (NEGATIVE EDGE)
+    clock = false;
+    for (let i = 0; i < ON_TIME; i++) {
+        pulse();
+    }
+    console.log("--------------------------------");
     log_wave_end();
-    // console.log('-----------CYCLE END------------------')
 }
 
-setInterval(wave_pulse, CLOCK_SPEED);
+// setInterval(wave_pulse, CLOCK_SPEED);

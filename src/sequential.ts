@@ -1,3 +1,4 @@
+import { MUX2_1 } from "./combinational";
 import { AND, AND3, NOR, NOT, OR } from "./gates";
 
 export class Latch {
@@ -7,27 +8,19 @@ export class Latch {
         this.Q = false;
         this.Q_ = true;
     }
-    SET() {
-        this.Q = true;
-        this.Q_ = false;
-    }
-    CLEAR() {
-        this.Q = false;
-        this.Q_ = true;
-    }
     RSNOR(R: boolean, S: boolean) {
         this.Q = NOR(this.Q_, R);
         this.Q_ = NOR(this.Q, S);
     }
-    RSNOREN(R: boolean, CLOCK: boolean, S: boolean) {
-        this.RSNOR(AND(R, CLOCK), AND(S, CLOCK));
+    RSNOREN(R: boolean, ENABLE: boolean, S: boolean) {
+        this.RSNOR(AND(R, ENABLE), AND(S, ENABLE));
     }
-    DLatch(D: boolean, CLOCK: boolean) {
-        this.RSNOREN(NOT(D), CLOCK, D);
+    DLatch(D: boolean, ENABLE: boolean) {
+        this.RSNOREN(NOT(D), ENABLE, D);
     }
-    JKLatch(K: boolean, CLOCK: boolean, J: boolean) {
-        const reset = AND3(K, CLOCK, this.Q);
-        const set = AND3(J, CLOCK, this.Q_);
+    JKLatch(K: boolean, ENABLE: boolean, J: boolean) {
+        const reset = AND3(K, ENABLE, this.Q);
+        const set = AND3(J, ENABLE, this.Q_);
         this.RSNOR(reset, set);
     }
 }
@@ -40,19 +33,23 @@ export class FlipFlop extends Latch {
         super();
         this.master = new Latch();
         this.slave = new Latch();
-
-        // Initialize Latches
-        this.master.SET();
-        this.slave.CLEAR();
     }
 
-    MSDFF(D: boolean, CLOCK: boolean) {
+}
+export class JKFF extends FlipFlop {
+    constructor() {
+        super();
+        // NOTE : this is a sequence to initialize all the flip flops. first it goes from low to high, then high to low ( negative trigger )
+        // It is critical that all three of these operations happen for the flip flops to be reset to zero.
+        // Should be revisited later to find the root cause.
+        this.TFF(true, false);
+        this.TFF(true, false);
 
-        this.master.DLatch(D, CLOCK);
-        this.slave.DLatch(this.master.Q, NOT(CLOCK));
+        this.TFF(true, true);
+        this.TFF(true, true);
 
-        this.Q = this.slave.Q
-        this.Q_ = this.slave.Q_
+        this.TFF(true, false);
+        this.TFF(true, false);
     }
     MSJKFF(K: boolean, CLOCK: boolean, J: boolean) {
         const masterR = AND3(J, CLOCK, this.Q_);
@@ -71,71 +68,103 @@ export class FlipFlop extends Latch {
     TFF(T: boolean, CLOCK: boolean) {
         this.MSJKFF(T, CLOCK, T);
     }
+    TFF_LOAD(CLOCK: boolean, TOGGLE: boolean, LOAD: boolean, DATA: boolean) {
+        const k_mux = OR(AND(NOT(LOAD), TOGGLE), AND(LOAD, NOT(DATA)));
+        const j_mux = OR(AND(NOT(LOAD), TOGGLE), AND(LOAD, DATA));
+        this.MSJKFF(k_mux, CLOCK, j_mux);
+    }
 }
 
+export class DFF extends FlipFlop {
+    constructor() {
+        super();
+        // NOTE : this is a sequence to initialize all the flip flops. first it goes from low to high, then high to low ( negative trigger )
+        // It is critical that all three of these operations happen for the flip flops to be reset to zero.
+        // Should be revisited later to find the root cause.
+        this.MSDFF(false, false);
+        this.MSDFF(false, false);
 
-function MUX2_1(A: boolean, B: boolean, select0: boolean): boolean {
-    // select0 ? A : B
-    return OR(AND(A, select0), AND(B, NOT(select0)));
+        this.MSDFF(false, true);
+        this.MSDFF(false, true);
+
+        this.MSDFF(false, false);
+        this.MSDFF(false, false);
+    }
+    MSDFF(D: boolean, CLOCK: boolean) {
+        this.master.DLatch(D, CLOCK);
+        this.slave.DLatch(this.master.Q, NOT(CLOCK));
+
+        this.Q = this.slave.Q
+        this.Q_ = this.slave.Q_
+    }
 }
+// ADDRESS LOW 8 bit
+// ADDRESS HIGH 8 bit
+export class Register {
+    size: number;
+    flipflops: DFF[];
+    name: string;
+    READ_ENABLE: boolean;
+    WRITE_ENABLE: boolean;
+    constructor(registerSize: number, name: string) {
+        this.name = name;
+        this.size = registerSize;
+        this.flipflops = []
+        for (let i = 0; i < this.size; i++) {
+            this.flipflops.push(new DFF());
+        }
+        this.READ_ENABLE = false;
+        this.WRITE_ENABLE = false;
+    }
+    read(OVERRIDE: boolean = false) {
+        const data = [];
+        for (let i = 0; i < this.flipflops.length; i++) {
+            const value = AND(this.flipflops[i].Q, OR(this.READ_ENABLE, OVERRIDE))
+            data.push(value)
+        }
+        return data;
+    }
+    run(CLOCK: boolean, DATA: boolean[]) {
+        for (let i = 0; i < this.size; i++) {
+            const d_pin = MUX2_1(DATA[i], this.flipflops[i].Q, this.WRITE_ENABLE);
+            this.flipflops[i].MSDFF(d_pin, CLOCK);
+        }
+    }
+}
+
 
 export class Counter {
-    flipflops: FlipFlop[];
-    constructor(bitLength: number) {
-        this.flipflops = [];
-        for (let i = 0; i < bitLength; i++) {
-            this.flipflops.push(new FlipFlop());
+    size: number;
+    flipflops: JKFF[];
+    name: string;
+    READ_ENABLE: boolean;
+    WRITE_ENABLE: boolean;
+    ENABLE_COUNTER: boolean;
+    constructor(registerSize: number, name: string) {
+        this.name = name;
+        this.size = registerSize;
+        this.flipflops = []
+        for (let i = 0; i < this.size; i++) {
+            this.flipflops.push(new JKFF());
         }
+        this.READ_ENABLE = false;
+        this.WRITE_ENABLE = false;
+        this.ENABLE_COUNTER = false;
     }
-    read(Q: boolean = true): boolean[] {
-        // True will return Q and false will return Q_
-        const result = [];
-        // Reads the value of the counter,
-        for (let flipflop of this.flipflops) {
-            const value = MUX2_1(flipflop.Q, flipflop.Q_, Q);
-            result.push(value);
+    read(OVERRIDE: boolean = false) {
+        const data = [];
+        for (let i = 0; i < this.flipflops.length; i++) {
+            const value = AND(this.flipflops[i].Q, OR(this.READ_ENABLE, OVERRIDE))
+            data.push(value)
         }
-        return result;
+        return data;
     }
-
-    SYNC(T: boolean, CLOCK: boolean) {
-        this.flipflops.reverse();
-        let ripple_T = T;
-        for (let flipflop of this.flipflops) {
-            flipflop.TFF(ripple_T, CLOCK);
-            ripple_T = AND(ripple_T, flipflop.Q);
+    runSync(CLOCK: boolean, DATA: boolean[], REVERSE: boolean = false) {
+        let prev = this.ENABLE_COUNTER;
+        for (let i = this.size - 1; i >= 0; i--) {
+            const ff = this.flipflops[i];
+            ff.TFF_LOAD(CLOCK, prev, this.WRITE_ENABLE, DATA[i]);
+            prev = AND(MUX2_1(ff.Q_, ff.Q, REVERSE), prev);
         }
-        this.flipflops.reverse();
-    }
-
-    ASYNC_RIPPLE(T: boolean, CLOCK: boolean) {
-        this.flipflops.reverse();
-        let ripple_clock = CLOCK;
-        for (let flipflop of this.flipflops) {
-            flipflop.TFF(T, ripple_clock);
-            ripple_clock = flipflop.Q;
-        }
-        this.flipflops.reverse();
     }
 }
-
-
-export function DECODER2_4(A : boolean,B:boolean) : [boolean,boolean,boolean,boolean]{
-    /*
-    DECODER
-    
-    A B | Y0 Y1 Y2 Y3
-    0 0 |  1 0  0  0
-    0 1 |  0 1  0  0
-    1 0 |  0 0  1  0
-    1 1 |  0 0  0  1    
-    */
-
-    const Y0 = AND(NOT(A), NOT(B))
-    const Y1 = AND(NOT(A), B)
-    const Y2 = AND(A, NOT(B))
-    const Y3 = AND(A, B)
-    return [Y0,Y1,Y2,Y3]
-}
-
-

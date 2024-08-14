@@ -37,3 +37,16 @@ PERSONAL NOTE : It seems this edge pulse detector is usually implemented one of 
 
 
 Chip Select is just OUTPUT ENABLE. just tie a tri state buffer over it.
+
+
+**Sequential Circuits (e.g., Flip-Flops, Registers):**
+
+Write then Read: Typically, data is first written to a register or memory (e.g., during a clock edge). After writing, the data can be read in the next clock cycle. For instance, in a flip-flop, data is latched (written) on the rising edge of the clock and is then stable for reading.
+
+**Combinational Circuits (e.g., Logic Gates, Adders):**
+
+Read and Write Simultaneously: In purely combinational circuits, there isn't a distinct read-then-write or write-then-read process. Inputs are processed (read) simultaneously, and outputs (write) are generated instantly based on the logic.
+
+**Memory Operations (e.g., RAM, Cache):**
+
+Read or Write, Depending on Operation: You either perform a read or a write operation, not both simultaneously. A read operation retrieves data, while a write operation stores data.

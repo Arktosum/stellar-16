@@ -7,7 +7,6 @@ body{
     border : 1px solid green;
 }
 
-
 .hex-container{
     background-color: black;
     width : 100px;
@@ -43,4 +42,11 @@ body{
 
 .bad-color{
     background-color:rgb(49, 49, 49);
+}
+
+
+.ram-matrix{
+    display: grid;
+    grid-template-columns: repeat(16,1fr);
+    place-items: center;
 }
