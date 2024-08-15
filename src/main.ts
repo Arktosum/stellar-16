@@ -1,188 +1,69 @@
-import { HexDisplay4 } from "./hexDisplay";
-import { MEMORY } from "./memory";
-import Numeric from "./number";
-import { Counter, Register } from "./sequential";
+import { Clock } from './digital-logic/clock';
+import { DFlipFlop, Register } from './digital-logic/flipflop';
+import './style.css'
 
-let clock = false;
-const CLOCK_FREQUENCY = 1 // Hz
-const CLOCK_SPEED = 1000 / CLOCK_FREQUENCY // ms
-const ON_TIME = 4
-
-let inputA = false;
-let inputB = false;
-let inputC = false;
-
-const PC_DISPLAY = new HexDisplay4("Program Counter");
-const MAR_DISPLAY = new HexDisplay4("Memory Address Register");
-const MDR_DISPLAY = new HexDisplay4("Memory Data Register");
-const A_DISPLAY = new HexDisplay4("A REGISTER");
-const B_DISPLAY = new HexDisplay4("B REGISTER");
-const IR_DISPLAY = new HexDisplay4("C REGISTER");
-
-const btnElementA = document.createElement('button');
-btnElementA.innerText = 'STEP PULSE'
-
-
-
-btnElementA.addEventListener('click', (() => {
-    inputA = !inputA;
-    btnElementA.style.backgroundColor = inputA ? 'green' : "red";
-}))
-
-
-btnElementA.addEventListener('click', wave_pulse);
-
-document.body.appendChild(btnElementA);
-
-const registerFile = document.createElement('div');
-
-registerFile.appendChild(PC_DISPLAY.container);
-registerFile.appendChild(MAR_DISPLAY.container);
-registerFile.appendChild(MDR_DISPLAY.container);
-registerFile.appendChild(A_DISPLAY.container);
-registerFile.appendChild(B_DISPLAY.container);
-registerFile.appendChild(IR_DISPLAY.container);
-
-document.body.appendChild(registerFile);
-
-
-class Bus {
-    data: boolean[];
-    constructor(bitLength: number) {
-        this.data = [];
-        for (let i = 0; i < bitLength; i++) {
-            this.data.push(false);
-        }
-    }
-    read() {
-        return this.data;
-    }
-    write(data: boolean[]) {
-        this.data = data;
-    }
+const root = document.body;
+function createElement(elementType: string, className: string = "", id: string = "", text: string = "") {
+  const element = document.createElement(elementType);
+  element.className = className;
+  element.id = id;
+  element.innerText = text;
+  element.textContent = text;
+  return element;
+}
+function bitButton(description: string, callback = () => { }) {
+  const container = createElement('div', 'bit-container');
+  const bitButton = createElement('div', 'bit-button');
+  const bitDescription = createElement('div', 'bit-description', "", description);
+  container.state = false;
+  bitButton.classList.add('bit-off');
+  container.appendChild(bitButton);
+  container.appendChild(bitDescription);
+  container.addEventListener('click', () => {
+    container.state = !container.state;
+    bitButton.classList.remove(container.state ? 'bit-off' : 'bit-on');
+    bitButton.classList.add(!container.state ? 'bit-off' : 'bit-on');
+    callback();
+  })
+  return container;
 }
 
-const ADDRESS_BUS = new Bus(16);
-const DATA_BUS = new Bus(16);
+const clock = new Clock(1, 2);
+const register = new Register(4);
 
-const A_REGISTER = new Register(16, 'A');
-const B_REGISTER = new Register(16, 'B');
-const PROGRAM_COUNTER = new Counter(16, 'PC');
-const memory = new MEMORY(16)
+const stepButton = bitButton('STEP', () => {
+  clock.step(pulse, waveStart, waveEnd);
+});
 
-function displayItems() {
-    console.log('-- display -- ')
-    PC_DISPLAY.display(PROGRAM_COUNTER.read(true));
-    A_DISPLAY.display(A_REGISTER.read(true));
-    console.log('-- display -- ')
+const bit0 = bitButton('DATA0');
+const bit1 = bitButton('DATA1');
+const bit2 = bitButton('DATA2');
+const bit3 = bitButton('DATA3');
+
+const registerContainer = createElement('div', 'flex');
+registerContainer.appendChild(bit3);
+registerContainer.appendChild(bit2);
+registerContainer.appendChild(bit1);
+registerContainer.appendChild(bit0);
+
+root.appendChild(stepButton);
+root.appendChild(registerContainer);
+
+
+
+function pulse(clock: boolean, phase: string) {
+  console.log(`--------- PULSE START - ${phase} ---------`)
+  register.write(clock, [bit3.state, bit2.state, bit1.state, bit0.state])
+  console.log(`--------- PULSE END -------------------`)
 }
 
-// Counter EN
-// Counter Read
-// Counter Write
-// A Read
-// A Write
-
-function resetMicro() {
-    A_REGISTER.READ_ENABLE = false;
-    A_REGISTER.WRITE_ENABLE = false;
-
-    B_REGISTER.READ_ENABLE = false;
-    B_REGISTER.WRITE_ENABLE = false;
-
-    PROGRAM_COUNTER.ENABLE_COUNTER = false;
-    PROGRAM_COUNTER.READ_ENABLE = false;
-    PROGRAM_COUNTER.WRITE_ENABLE = false;
-
-    memory.READ_ENABLE = false;
-    memory.WRITE_ENABLE = false;
-}
-const INSTRUCTION = [
-    () => {
-
-    },
-    () => {
-    },
-    () => {
-    },
-    () => {
-    },
-    () => {
-    },
-    () => {
-    },
-    () => {
-    },
-    () => { },
-    () => { },
-    () => { },
-    () => { },
-    () => { },
-    () => { },
-    () => { },
-    () => { },
-    () => { },
-]
-
-displayItems();
-let instruction_count = 0;
-function pulse() {
-    console.log(`-------------- PULSE START -----------------------`)
-    const pc_value = PROGRAM_COUNTER.read();
-
-    ADDRESS_BUS.write(pc_value); // AB <- PC
-    PROGRAM_COUNTER.runSync(clock, ADDRESS_BUS.read(), false); // PC <- AB
-    memory.run(clock, ADDRESS_BUS.read(), DATA_BUS.read()); // MEMORY R/W
-    DATA_BUS.write(memory.output); // DB <- MEMORY
-    A_REGISTER.run(clock, DATA_BUS.read()); // A <- DB
-    DATA_BUS.write(A_REGISTER.read()); // DB <- A
-    displayItems();
-    console.log("-------------- PULSE END -----------------------")
+function waveStart() {
+  console.log('--------- WAVE START ---------')
 }
 
-function log_wave_start() {
-    console.log('----------- CYCLE START ------------------')
-    resetMicro();
-    INSTRUCTION[instruction_count]()
+function waveEnd() {
+  console.log('--------- WAVE END ---------')
+  console.log(register.read());
 }
 
-function log_wave_end() {
-    console.log('----------- CYCLE END ------------------')
-    instruction_count++;
-    // Update then display.
-}
-
-function wave_pulse() {
-    log_wave_start();
-    // Low level;
-    console.log("-------- LOW LEVEL -------------");
-    clock = false;
-    for (let i = 0; i < ON_TIME; i++) {
-        pulse();
-    }
-    console.log("--------------------------------");
-    console.log("-------- POSITIVE EDGE -------------");
-    // low to high (POSITIVE EDGE)
-    clock = true;
-    for (let i = 0; i < ON_TIME; i++) {
-        pulse();
-    }
-    console.log("--------------------------------");
-    console.log("-------- HIGH LEVEL -------------");
-    // high level
-    clock = true;
-    for (let i = 0; i < ON_TIME; i++) {
-        pulse();
-    }
-    console.log("--------------------------------");
-    console.log("-------- NEGATIVE EDGE -------------");
-    // high to low (NEGATIVE EDGE)
-    clock = false;
-    for (let i = 0; i < ON_TIME; i++) {
-        pulse();
-    }
-    console.log("--------------------------------");
-    log_wave_end();
-}
-
-// setInterval(wave_pulse, CLOCK_SPEED);
+// clock.start(pulse, waveStart, waveEnd);

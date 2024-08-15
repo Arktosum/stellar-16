@@ -1,52 +1,40 @@
+*{
+  margin : 0;
+}
+
 body{
-    display: flex;
-    gap : 5px;
+  background-color : black;
+  min-height: 100vh;
+}
+.bit-container{
+  background-color : rgb(30, 30, 30);
+  width : 50px;
+  height : 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-.borderize{
-    border : 1px solid green;
+.bit-button{
+  width: 25px;
+  height: 25px;
+  border-radius: 100%;
 }
 
-.hex-container{
-    background-color: black;
-    width : 100px;
-    height : 200px;
-    display : flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding : 5px;
+.bit-description{
+  color : white;
+  font-weight: bold;
 }
 
-.hex-horiz{
-    width: 80px;
-    height : 10px;
-    border-radius: 15px;
-
+.bit-on{
+  background-color : green;
 }
-.hex-vert{
-    width: 10px;
-    height : 80px;
-    border-radius: 15px;
-
-}
-.hex-flat{
-    display : flex;
-    width : 100%;
-    justify-content: space-between;
+.bit-off{
+  background-color : red;
 }
 
-.good-color{
-    background-color: yellow;
-}
-
-.bad-color{
-    background-color:rgb(49, 49, 49);
-}
-
-
-.ram-matrix{
-    display: grid;
-    grid-template-columns: repeat(16,1fr);
-    place-items: center;
+.flex{
+  display : flex;
+  gap : 5;
 }
