@@ -1,16 +1,11 @@
 import { Clock } from './digital-logic/clock';
-import { DFlipFlop, Register } from './digital-logic/flipflop';
+import { Counter } from './digital-logic/flipflop';
+import { HexDisplay } from './digital-logic/hexDisplay';
 import './style.css'
+import { createElement } from './util';
 
 const root = document.body;
-function createElement(elementType: string, className: string = "", id: string = "", text: string = "") {
-  const element = document.createElement(elementType);
-  element.className = className;
-  element.id = id;
-  element.innerText = text;
-  element.textContent = text;
-  return element;
-}
+
 function bitButton(description: string, callback = () => { }) {
   const container = createElement('div', 'bit-container');
   const bitButton = createElement('div', 'bit-button');
@@ -28,15 +23,20 @@ function bitButton(description: string, callback = () => { }) {
   return container;
 }
 
+
+
 const clock = new Clock(1, 2);
-const register = new Register(4);
+const counter = new Counter(16);
+const hexDisplay = new HexDisplay(16, 'COUNTER');
 
 const stepButton = bitButton('STEP', () => {
-  clock.step(pulse, waveStart, waveEnd);
+  for (let i = 0; i < 1; i++) {
+    clock.step(pulse, waveStart, waveEnd);
+  }
 });
 
-const bit0 = bitButton('DATA0');
-const bit1 = bitButton('DATA1');
+const bit0 = bitButton('K');
+const bit1 = bitButton('J');
 const bit2 = bitButton('DATA2');
 const bit3 = bitButton('DATA3');
 
@@ -48,22 +48,19 @@ registerContainer.appendChild(bit0);
 
 root.appendChild(stepButton);
 root.appendChild(registerContainer);
-
-
+root.appendChild(hexDisplay.container);
 
 function pulse(clock: boolean, phase: string) {
   console.log(`--------- PULSE START - ${phase} ---------`)
-  register.write(clock, [bit3.state, bit2.state, bit1.state, bit0.state])
+  counter.SYNC(clock, true, true);
+  hexDisplay.display(counter.read());
   console.log(`--------- PULSE END -------------------`)
 }
-
 function waveStart() {
   console.log('--------- WAVE START ---------')
 }
-
 function waveEnd() {
   console.log('--------- WAVE END ---------')
-  console.log(register.read());
 }
 
 // clock.start(pulse, waveStart, waveEnd);

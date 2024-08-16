@@ -36,5 +36,46 @@ body{
 
 .flex{
   display : flex;
-  gap : 5;
+  gap : 10;
+}
+.flex-col{
+  flex-direction: column;
+}
+.font-class{
+  color : white;
+  font-weight:  bold;
+  
+}
+
+.hex-container{
+  width: 40px;
+  background-color: rgb(22, 22, 22);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.hex-vertical-container{
+  display: flex;
+  justify-content: space-between;
+  width:  100%;
+}
+.hex-horizontal{
+  border-radius: 15%;
+  width : 20px;
+  height : 10px;
+  border-radius: 40%;
+}
+.hex-vertical{
+  border-radius: 40%;
+  width: 10px;
+  height: 20px;
+}
+
+.hex-off{
+  background-color : rgb(58, 58, 58);
+}
+
+.hex-on{
+  background-color: yellow;
 }
