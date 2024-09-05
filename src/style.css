@@ -36,7 +36,8 @@ body{
 
 .flex{
   display : flex;
-  gap : 10;
+  gap : 10px;
+
 }
 .flex-col{
   flex-direction: column;
@@ -78,4 +79,7 @@ body{
 
 .hex-on{
   background-color: yellow;
+}
+.m-5{
+  margin :10px;
 }

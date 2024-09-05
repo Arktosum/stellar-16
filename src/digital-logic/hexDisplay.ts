@@ -87,7 +87,7 @@ export class HexDisplay {
     size: number;
     displays: SevenSegmentDisplay[];
     container: HTMLElement;
-    constructor(bitLength: number,description : string) {
+    constructor(bitLength: number, description: string) {
         if (bitLength % 4 != 0) {
             console.error("Cannot display hex value without multiple of 4 bits!");
         }
@@ -98,18 +98,18 @@ export class HexDisplay {
         }
 
         this.container = createElement('div', 'multi-hex-container flex-col');
-        const displayContainer = createElement('div', 'flex');
-        const textContainer = createElement('div', 'font-class',"",description);
+        const displayContainer = createElement('div', 'flex m-5');
+        const textContainer = createElement('div', 'font-class', "", description);
         for (let display of this.displays) {
             displayContainer.appendChild(display.container);
         }
-        this.container.appendChild(displayContainer);
         this.container.appendChild(textContainer);
+        this.container.appendChild(displayContainer);
+        this.container.appendChild(document.createElement('hr'));
+
     }
     display(data: boolean[]) {
-        if (data.length != this.size * 4) {
-            console.error("Given data length does not match Hex Display size!");
-        }
+
         for (let i = 0; i < data.length; i += 4) {
             this.displays[Math.floor(i / 4)].display(data.slice(i, i + 4));
         }
