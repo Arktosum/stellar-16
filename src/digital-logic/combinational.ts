@@ -1,37 +1,73 @@
-import { XOR, AND, OR, NOT, XNOR } from "./gates";
-import Numeric from "./number";
+import { AND, AND3, NOT, OR, XNOR, XOR } from "./gates";
+import { dec_to_bool, Numeric } from "./Numeric";
 
-function HALF_ADDER(A: boolean, B: boolean): [boolean, boolean] {
+export function HALF_ADDER(A: boolean, B: boolean): [boolean, boolean] {
     const SUM = XOR(A, B);
     const CARRY = AND(A, B);
-
     return [SUM, CARRY];
 }
 
-function FULL_ADDER(A: boolean, B: boolean, CarryIn: boolean): [boolean, boolean] {
+export function FULL_ADDER(A: boolean, B: boolean, CARRY: boolean) {
     const [HALF_SUM, HALF_CARRY] = HALF_ADDER(A, B);
-    const [FULL_SUM, NEXT_CARRY] = HALF_ADDER(HALF_SUM, CarryIn);
-    const FULL_CARRY = OR(HALF_CARRY, NEXT_CARRY);
-
+    const [FULL_SUM, SUB_FINAL_CARRY] = HALF_ADDER(HALF_SUM, CARRY);
+    const FULL_CARRY = OR(HALF_CARRY, SUB_FINAL_CARRY);
     return [FULL_SUM, FULL_CARRY];
 }
-export function FULL_ADDER_N(A: boolean[], B: boolean[], carryIn: boolean): [boolean[], boolean] {
+export function FULL_ADDER_N(A: boolean[], B: boolean[], CARRY: boolean): [boolean[], boolean] {
     if (A.length != B.length) {
-        throw new Error("A and B must have same bitLength!");
+        throw new Error("Invalid bit Length of operands!")
     }
-
-    const FULL_SUMS: boolean[] = [];
-    let FULL_CARRY = carryIn;
-    const bitLength = A.length;
-
-    for (let i = bitLength - 1; i >= 0; i--) {
-        const [sum, carry] = FULL_ADDER(A[i], B[i], FULL_CARRY);
-        FULL_SUMS.push(sum);
-        FULL_CARRY = carry;
+    let RESULT = [];
+    let carry = CARRY
+    for (let i = A.length - 1; i >= 0; i--) {
+        let [full_sum, full_carry] = FULL_ADDER(A[i], B[i], carry);
+        RESULT.push(full_sum);
+        carry = full_carry
     }
-    FULL_SUMS.reverse();
-    return [FULL_SUMS, FULL_CARRY]
+    RESULT = RESULT.reverse();
+    return [RESULT, carry];
 }
+
+export function MUX_2x1(A: boolean, B: boolean, S: boolean): boolean {
+    return OR(AND(NOT(S), A), AND(S, B));
+}
+
+export function MUX_4x1(A: boolean, B: boolean, C: boolean, D: boolean, S1: boolean, S0: boolean): boolean {
+    // 00 - A
+    // 01 - B
+    // 10 - C
+    // 11 - D
+    // Uses a MUX tree to make 4:1 MUX using 3 , 2:1 MUXes
+    return MUX_2x1(MUX_2x1(A, B, S0), MUX_2x1(C, D, S0), S1);
+}
+
+
+
+export function DEMUX_1x2(A: boolean, S: boolean): boolean[] {
+    return [AND(NOT(S), A), AND(S, A)]
+}
+export function DEMUX_recursive(A: boolean, S: boolean[]): boolean[] {
+    // Base case: If there's only 1 selector bit, it's a 1x2 DEMUX
+    if (S.length === 1) {
+        return DEMUX_1x2(A, S[0]);
+    }
+
+    // Recursive case: Split the input with the first selector bit
+    const [low, high] = DEMUX_1x2(A, S[0]);
+
+    // Further split the low and high paths recursively
+    const lowOutputs = DEMUX_recursive(low, S.slice(1));
+    const highOutputs = DEMUX_recursive(high, S.slice(1));
+
+    // Combine the outputs
+    return [...lowOutputs, ...highOutputs];
+}
+
+
+export function DECODER_1x2(A: boolean): boolean[] {
+    return [NOT(A), A]
+}
+
 export function ARITHMETIC(A: boolean[], B: boolean[], subtract: boolean): [boolean[], boolean, boolean, boolean] {
     if (A.length != B.length) {
         throw new Error("A and B must have same bitLength!");
@@ -49,10 +85,6 @@ export function ARITHMETIC(A: boolean[], B: boolean[], subtract: boolean): [bool
         ZERO_FLAG = AND(ZERO_FLAG, NOT(bit));
     }
     return [SUM, NEGATIVE_FLAG, OVERFLOW_FLAG, ZERO_FLAG];
-}
-export function MUX2_1(A: boolean, B: boolean, select0: boolean): boolean {
-    // select0 ? A : B
-    return OR(AND(A, select0), AND(B, NOT(select0)));
 }
 export function DECODER2_4(A: boolean, B: boolean): [boolean, boolean, boolean, boolean] {
     /*
@@ -77,7 +109,7 @@ export function DECODERM_2N(values: boolean[]): boolean[] {
     const results: boolean[] = [];
 
     for (let i = 0; i < n; i++) {
-        const binaryInput = (new Numeric(i)).toBinary(m);
+        const binaryInput = dec_to_bool(i, m);
         let res = true;
         for (let j = 0; j < m; j++) {
             res = AND(res, XNOR(binaryInput[j], values[j]))
@@ -86,11 +118,3 @@ export function DECODERM_2N(values: boolean[]): boolean[] {
     }
     return results;
 }
-
-// 00 1
-// 01 1
-// 10 1
-// 11 0
-
-// JA = NOR(L',CL')
-// KA = 
