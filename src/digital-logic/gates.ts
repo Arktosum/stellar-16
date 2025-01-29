@@ -1,29 +1,32 @@
-export function AND(A: boolean, B: boolean) {
-    return A && B;
-}
-export function NOT(A: boolean) {
-    return !A;
-}
-export function NAND(A: boolean, B: boolean) {
-    return NOT(AND(A, B));
+export function AND(a: boolean, b: boolean): boolean {
+    return a && b;
 }
 
-export function OR(A: boolean, B: boolean) {
-    return NAND(NOT(A), NOT(B));
+export function NOT(a: boolean): boolean {
+    return !a;
 }
 
-export function NOR(A: boolean, B: boolean) {
-    return NOT(OR(A, B));
+// Composite Gates
+export function OR(a: boolean, b: boolean): boolean {
+    return NOT(AND(NOT(a), NOT(b)));
 }
 
-export function XOR(A: boolean, B: boolean) {
-    return AND(OR(A, B), OR(NOT(A), NOT(B)));
+export function XOR(a: boolean, b: boolean): boolean {
+    return AND(OR(a, b), NOT(AND(a, b)));
 }
 
-export function XNOR(A: boolean, B: boolean) {
-    return NOT(XOR(A, B));
+export function XNOR(a: boolean, b: boolean): boolean {
+    return NOT(XOR(a, b))
+}
+export function NAND(a: boolean, b: boolean): boolean {
+    return NOT(AND(a, b));
 }
 
-export function AND3(A: boolean, B: boolean, C: boolean) {
-    return AND(A, AND(B, C));
+export function NOR(a: boolean, b: boolean): boolean {
+    return NOT(OR(a, b));
 }
+
+export function BUFFER(a: boolean): boolean {
+    return NOT(NOT(a));
+}
+

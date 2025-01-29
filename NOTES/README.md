@@ -52,8 +52,4 @@ Read and Write Simultaneously: In purely combinational circuits, there isn't a d
 Read or Write, Depending on Operation: You either perform a read or a write operation, not both simultaneously. A read operation retrieves data, while a write operation stores data.
 
 
-![alt text](image-5.png)
-
-
-Since we only have one set of lines, we will only have ONE BUS.
 

@@ -1,120 +1,127 @@
-import { AND, AND3, NOT, OR, XNOR, XOR } from "./gates";
-import { dec_to_bool, Numeric } from "./Numeric";
+import { XOR, AND, OR, NOT, NAND, NOR, XNOR } from "./gates";
+import { decimalToBooleanArray } from "./utils";
 
-export function HALF_ADDER(A: boolean, B: boolean): [boolean, boolean] {
-    const SUM = XOR(A, B);
-    const CARRY = AND(A, B);
-    return [SUM, CARRY];
+export function HALF_ADDER(A: boolean, B: boolean): { sum: boolean, carry: boolean } {
+    const sum = XOR(A, B);
+    const carry = AND(A, B);
+    return { sum, carry };
 }
 
-export function FULL_ADDER(A: boolean, B: boolean, CARRY: boolean) {
-    const [HALF_SUM, HALF_CARRY] = HALF_ADDER(A, B);
-    const [FULL_SUM, SUB_FINAL_CARRY] = HALF_ADDER(HALF_SUM, CARRY);
-    const FULL_CARRY = OR(HALF_CARRY, SUB_FINAL_CARRY);
-    return [FULL_SUM, FULL_CARRY];
+export function FULL_ADDER(A: boolean, B: boolean, Cin: boolean): { sum: boolean, carry: boolean } {
+    const sum = XOR(XOR(A, B), Cin);
+    const carry = OR(AND(A, B), AND(Cin, XOR(A, B)));
+    return { sum, carry };
 }
-export function FULL_ADDER_N(A: boolean[], B: boolean[], CARRY: boolean): [boolean[], boolean] {
-    if (A.length != B.length) {
-        throw new Error("Invalid bit Length of operands!")
+
+export function MUX_2x1(I1: boolean, I0: boolean, S: boolean): boolean {
+    // S ? I1 : I0
+    return OR(AND(S, I1), AND(NOT(S), I0));
+}
+
+export function MUX_4x1(inputs: boolean[], selects: boolean[]): boolean {
+
+    const ordered_inputs = [...inputs].reverse()
+    const ordered_selects = [...selects].reverse()
+
+    const mux1 = MUX_2x1(ordered_inputs[0], ordered_inputs[1], ordered_selects[0])
+    const mux2 = MUX_2x1(ordered_inputs[2], ordered_inputs[3], ordered_selects[0])
+
+    return MUX_2x1(mux1, mux2, ordered_selects[1]);
+}
+
+export function MUX_8x1(inputs: boolean[], selects: boolean[]): boolean {
+
+    const ordered_inputs = [...inputs].reverse()
+    const ordered_selects = [...selects].reverse()
+
+    const mux1 = MUX_2x1(ordered_inputs[0], ordered_inputs[1], ordered_selects[0])
+    const mux2 = MUX_2x1(ordered_inputs[2], ordered_inputs[3], ordered_selects[0])
+    const mux3 = MUX_2x1(ordered_inputs[4], ordered_inputs[5], ordered_selects[0])
+    const mux4 = MUX_2x1(ordered_inputs[6], ordered_inputs[7], ordered_selects[0])
+
+    const mux5 = MUX_2x1(mux1, mux2, ordered_selects[1]);
+    const mux6 = MUX_2x1(mux3, mux4, ordered_selects[1]);
+
+    return MUX_2x1(mux5, mux6, ordered_selects[2]);
+}
+export function ALU(inputA: boolean[], inputB: boolean[], control: boolean[], width: number): boolean[] {
+    if (inputA.length !== width || inputB.length !== width) {
+        throw new Error(`Inputs must be ${width} bits wide`);
     }
-    let RESULT = [];
-    let carry = CARRY
-    for (let i = A.length - 1; i >= 0; i--) {
-        let [full_sum, full_carry] = FULL_ADDER(A[i], B[i], carry);
-        RESULT.push(full_sum);
-        carry = full_carry
-    }
-    RESULT = RESULT.reverse();
-    return [RESULT, carry];
-}
-
-export function MUX_2x1(A: boolean, B: boolean, S: boolean): boolean {
-    return OR(AND(NOT(S), A), AND(S, B));
-}
-
-export function MUX_4x1(A: boolean, B: boolean, C: boolean, D: boolean, S1: boolean, S0: boolean): boolean {
-    // 00 - A
-    // 01 - B
-    // 10 - C
-    // 11 - D
-    // Uses a MUX tree to make 4:1 MUX using 3 , 2:1 MUXes
-    return MUX_2x1(MUX_2x1(A, B, S0), MUX_2x1(C, D, S0), S1);
-}
-
-
-
-export function DEMUX_1x2(A: boolean, S: boolean): boolean[] {
-    return [AND(NOT(S), A), AND(S, A)]
-}
-export function DEMUX_recursive(A: boolean, S: boolean[]): boolean[] {
-    // Base case: If there's only 1 selector bit, it's a 1x2 DEMUX
-    if (S.length === 1) {
-        return DEMUX_1x2(A, S[0]);
-    }
-
-    // Recursive case: Split the input with the first selector bit
-    const [low, high] = DEMUX_1x2(A, S[0]);
-
-    // Further split the low and high paths recursively
-    const lowOutputs = DEMUX_recursive(low, S.slice(1));
-    const highOutputs = DEMUX_recursive(high, S.slice(1));
-
-    // Combine the outputs
-    return [...lowOutputs, ...highOutputs];
-}
-
-
-export function DECODER_1x2(A: boolean): boolean[] {
-    return [NOT(A), A]
-}
-
-export function ARITHMETIC(A: boolean[], B: boolean[], subtract: boolean): [boolean[], boolean, boolean, boolean] {
-    if (A.length != B.length) {
-        throw new Error("A and B must have same bitLength!");
-    }
-    const SUB_INPUT: boolean[] = [];
-    for (let i = 0; i < A.length; i++) {
-        SUB_INPUT.push(XOR(B[i], subtract));
-    }
-    const [SUM, CARRY] = FULL_ADDER_N(A, SUB_INPUT, subtract);
-
-    let ZERO_FLAG = true; // Zero if ALL bits are 0
-    let OVERFLOW_FLAG = CARRY // Overflow if SET
-    let NEGATIVE_FLAG = SUM[0]; // NEGATIVE if First bit is SET
-    for (let bit of SUM) {
-        ZERO_FLAG = AND(ZERO_FLAG, NOT(bit));
-    }
-    return [SUM, NEGATIVE_FLAG, OVERFLOW_FLAG, ZERO_FLAG];
-}
-export function DECODER2_4(A: boolean, B: boolean): [boolean, boolean, boolean, boolean] {
-    /*
-    DECODER
-    
-    A B | Y0 Y1 Y2 Y3
-    0 0 |  1 0  0  0
-    0 1 |  0 1  0  0
-    1 0 |  0 0  1  0
-    1 1 |  0 0  0  1
+    /*  
+        000: NOT A
+        001: AND
+        010: OR
+        011: XOR
+        100: NAND
+        101: NOR
+        110: Addition (using Full Adder)
+        111: Subtraction (using Two's Complement)
     */
-    const Y0 = AND(NOT(A), NOT(B))
-    const Y1 = AND(NOT(A), B)
-    const Y2 = AND(A, NOT(B))
-    const Y3 = AND(A, B)
-    return [Y0, Y1, Y2, Y3]
-}
-// SLOW FUNCTION EVEN FOR 16 BITS. In real life this would be a parallel circuit.
-export function DECODERM_2N(values: boolean[]): boolean[] {
-    const m = values.length;
-    const n = 2 ** values.length;
-    const results: boolean[] = [];
+    const NOT_A_RESULT = inputA.map((A) => NOT(A));
+    const AND_RESULT = inputA.map((A, index) => AND(A, inputB[index]));
+    const OR_RESULT = inputA.map((A, index) => OR(A, inputB[index]));
+    const XOR_RESULT = inputA.map((A, index) => XOR(A, inputB[index]));
+    const NAND_RESULT = inputA.map((A, index) => NAND(A, inputB[index]));
+    const NOR_RESULT = inputA.map((A, index) => NOR(A, inputB[index]));
+    const ADDITION_RESULT = []
+    const SUBTRACTION_RESULT = []
 
-    for (let i = 0; i < n; i++) {
-        const binaryInput = dec_to_bool(i, m);
-        let res = true;
-        for (let j = 0; j < m; j++) {
-            res = AND(res, XNOR(binaryInput[j], values[j]))
-        }
-        results.push(res);
+    let carry = false;
+    for (let i = width - 1; i >= 0; i--) {
+        // Reverse to conveniently get LSB to MSB
+        let result = FULL_ADDER(inputA[i], inputB[i], carry);
+        ADDITION_RESULT.push(result.sum);
+        carry = result.carry;
     }
-    return results;
+    // Because we pushed LSB to MSB , we need to reverse it back
+    ADDITION_RESULT.reverse();
+
+    // Subtraction (A - B) by using two's complement
+    const notB = inputB.map(bit => NOT(bit)); // NOT B
+
+    carry = true; // Here its true because to subtract we need to add ONE. so this basically works as expected.
+    for (let i = width - 1; i >= 0; i--) {
+        // Reverse to conveniently get LSB to MSB
+        const result = FULL_ADDER(inputA[i], notB[i], carry);
+        SUBTRACTION_RESULT.push(result.sum);
+        carry = result.carry;
+    }
+    // Because we pushed LSB to MSB , we need to reverse it back
+    SUBTRACTION_RESULT.reverse();
+
+    const RESULT = [];
+
+    for (let i = 0; i < width; i++) {
+        const inputs = [NOT_A_RESULT[i], AND_RESULT[i], OR_RESULT[i], XOR_RESULT[i], NAND_RESULT[i], NOR_RESULT[i], ADDITION_RESULT[i], SUBTRACTION_RESULT[i]]
+        RESULT.push(MUX_8x1(inputs, control));
+    }
+
+    return RESULT;
+}
+
+
+function AND_ARRAY(inputs: boolean[]): boolean {
+    let result = true;
+    for (let i = 0; i < inputs.length; i++) {
+        result = AND(result, inputs[i]);
+    }
+    return result;
+}
+
+
+export function DECODER_mxn(inputs: boolean[]): boolean[] {
+    // m , n = m^2
+    const m = inputs.length;
+    const n = 2 ** m;
+    const RESULT = [];
+    for (let i = 0; i < n; i++) {
+        const value = decimalToBooleanArray(i, m);
+        const xnors = [];
+        for (let j = 0; j < m; j++) {
+            xnors.push(XNOR(value[j], inputs[j]));
+        }
+        RESULT.push(AND_ARRAY(xnors));
+    }
+    return RESULT;
 }
