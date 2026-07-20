@@ -1,75 +1,55 @@
-import { Bus, Gate, Simulator, Wire } from './engine';
-import { MuxGate, DMux8Way, OrGate } from './gates';
-import { Mux8Way16, Mux16 } from './bus_gates';
-import { Add16 } from './arithmetic';
+import { Wire, Gate, CompositeGate, NandGate, Simulator } from './engine';
+import { NotGate } from './gates';
 
-export class DFF extends Gate {
-    private nextState: boolean = false;
-
-    constructor(inWire: Wire, outWire: Wire, name: string = "DFF") {
+/**
+ * The D-Latch (Data Latch).
+ * Built entirely from 4 NAND gates.
+ * When Enable is high, Q follows Data.
+ * When Enable is low, Q holds its previous value.
+ */
+export class DLatch extends CompositeGate {
+    constructor(inD: Wire, inE: Wire, outQ: Wire, outQBar: Wire, name: string = "DLatch") {
         super(name);
-        this.inputs = { in: inWire };
-        this.outputs = { out: outWire };
-        
-        // Register this primitive with the Simulator for clock sync
-        Simulator.registerDFF(this);
-    }
+        this.inputs = { inD, inE };
+        this.outputs = { outQ, outQBar };
 
-    /**
-     * DFFs don't evaluate combinationally. They ignore input changes until the clock ticks.
-     */
-    evaluate() {}
+        const wireSBar = new Wire(`${name}_SBar`);
+        const wireRBar = new Wire(`${name}_RBar`);
 
-    /**
-     * Called by Simulator on clock tick (rising edge)
-     */
-    latch() {
-        this.nextState = (this.inputs.in as Wire).state;
-    }
+        // Input Steering logic
+        this.addGate(new NandGate(inD, inE, wireSBar, `${name}_Nand1`));
+        this.addGate(new NandGate(wireSBar, inE, wireRBar, `${name}_Nand2`));
 
-    /**
-     * Called by Simulator on clock tock (falling edge)
-     */
-    commit() {
-        (this.outputs.out as Wire).state = this.nextState;
+        // Cross-coupled SR Latch (Active Low)
+        this.addGate(new NandGate(wireSBar, outQBar, outQ, `${name}_Nand3_Q`));
+        this.addGate(new NandGate(wireRBar, outQ, outQBar, `${name}_Nand4_QBar`));
     }
 }
 
-export class Bit extends Gate {
-    public mux: MuxGate;
-    public dff: DFF;
-    
-    public dffOutWire: Wire;
-    public muxOutWire: Wire;
-
-    constructor(inWire: Wire, load: Wire, outWire: Wire, name: string = "Bit") {
+/**
+ * The Master-Slave D-Flip-Flop.
+ * Built from two D-Latches and one NOT gate.
+ * It is edge-triggered. The Master loads data when Clock is High.
+ * The Slave outputs data when Clock falls to Low.
+ * This prevents the unstable race conditions of a transparent latch.
+ */
+export class DFlipFlop extends CompositeGate {
+    constructor(inD: Wire, inClock: Wire, outQ: Wire, outQBar: Wire, name: string = "DFF") {
         super(name);
-        this.inputs = { in: inWire, load: load };
-        this.outputs = { out: outWire };
+        this.inputs = { inD, inClock };
+        this.outputs = { outQ, outQBar };
 
-        this.dffOutWire = new Wire("dffOut");
-        this.muxOutWire = new Wire("muxOut");
+        const clockBar = new Wire(`${name}_ClockBar`);
+        const masterQ = new Wire(`${name}_MasterQ`);
+        const masterQBar = new Wire(`${name}_MasterQBar`);
 
-        // Correct wiring:
-        this.mux = new MuxGate(outWire, inWire, load, this.muxOutWire);
-        this.dff = new DFF(this.muxOutWire, outWire);
+        // Invert the clock for the Slave latch
+        this.addGate(new NotGate(inClock, clockBar, `${name}_NotClock`));
+
+        // Master Latch (transparent when Clock is HIGH)
+        this.addGate(new DLatch(inD, inClock, masterQ, masterQBar, `${name}_Master`));
+
+        // Slave Latch (transparent when Clock is LOW)
+        this.addGate(new DLatch(masterQ, clockBar, outQ, outQBar, `${name}_Slave`));
     }
-
-    evaluate() {}
-}
-
-export class Register extends Gate {
-    public bits: Bit[] = [];
-
-    constructor(inBus: Bus, load: Wire, outBus: Bus, name: string = "Register") {
-        super(name);
-        this.inputs = { in: inBus, load: load };
-        this.outputs = { out: outBus };
-
-        for (let i = 0; i < inBus.size; i++) {
-            this.bits.push(new Bit(inBus.wires[i], load, outBus.wires[i]));
-        }
-    }
-
-    evaluate() {}
 }

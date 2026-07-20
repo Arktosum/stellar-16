@@ -1,73 +1,10 @@
-export class Simulator {
-    private static evalQueue: Set<Gate> = new Set();
-    private static dffs: any[] = [];
-    public static clockState: boolean = false;
-    public static onClockTick?: (state: boolean) => void;
-    
-    /**
-     * Add a gate to be evaluated.
-     */
-    static schedule(gate: Gate) {
-        this.evalQueue.add(gate);
-    }
-    
-    /**
-     * Register a DFF primitive with the simulator.
-     */
-    static registerDFF(dff: any) {
-        this.dffs.push(dff);
-    }
-
-    /**
-     * Latch inputs into all DFFs (rising edge)
-     */
-    static tick() {
-        this.clockState = true;
-        for (const dff of this.dffs) {
-            dff.latch();
-        }
-        if (this.onClockTick) this.onClockTick(this.clockState);
-    }
-
-    /**
-     * Commit outputs from all DFFs (falling edge) and stabilize
-     */
-    static tock() {
-        this.clockState = false;
-        for (const dff of this.dffs) {
-            dff.commit();
-        }
-        if (this.onClockTick) this.onClockTick(this.clockState);
-        this.stabilize();
-    }
-    
-    /**
-     * Runs the simulation loop until all signals have propagated and the circuit is stable.
-     */
-    static stabilize() {
-        const maxIterations = 10000; // Prevent infinite loops from oscillating circuits (e.g., ring oscillators)
-        let iterations = 0;
-        
-        while (this.evalQueue.size > 0) {
-            if (iterations++ > maxIterations) {
-                throw new Error("Circuit failed to stabilize (possible unclocked oscillation or feedback loop).");
-            }
-            
-            // Snapshot the current queue and clear it.
-            // Gates evaluated in this pass might schedule new gates for the *next* pass.
-            const currentQueue = Array.from(this.evalQueue);
-            this.evalQueue.clear();
-            
-            for (const gate of currentQueue) {
-                gate.evaluate();
-            }
-        }
-    }
-}
+/**
+ * The Event-Driven Physics Engine
+ */
 
 export class Wire {
     private _state: boolean = false;
-    private listeners: Gate[] = [];
+    public listeners: NandGate[] = [];
     public name: string;
 
     constructor(name: string = "wire") {
@@ -78,36 +15,31 @@ export class Wire {
         return this._state;
     }
 
-    /**
-     * Setting the state of a wire instantly updates it and schedules connected gates.
-     * In a physical circuit, this represents voltage being applied to a trace.
-     */
     set state(newState: boolean) {
         if (this._state !== newState) {
             this._state = newState;
-            // Signal propagation: notify downstream gates to re-evaluate
+            // The voltage changed! Alert all connected gates.
             for (const gate of this.listeners) {
-                Simulator.schedule(gate);
+                Simulator.enqueue(gate);
             }
         }
     }
 
-    /**
-     * Connect a gate to listen to this wire.
-     */
-    connect(gate: Gate) {
+    connect(gate: NandGate) {
         this.listeners.push(gate);
-        // Initially schedule the gate to evaluate the current state of the wire
-        Simulator.schedule(gate);
+    }
+
+    disconnectAll() {
+        this.listeners = [];
     }
 }
 
 export class Bus {
     public wires: Wire[];
-    public name: string;
     public size: number;
+    public name: string;
 
-    constructor(size: number = 16, name: string = "bus") {
+    constructor(size: number, name: string = "bus") {
         this.size = size;
         this.name = name;
         this.wires = [];
@@ -116,41 +48,112 @@ export class Bus {
         }
     }
 
-    /**
-     * Sets the state of the bus using an integer value (LSB at index 0)
-     */
-    setValue(value: number) {
-        for (let i = 0; i < this.size; i++) {
-            this.wires[i].state = ((value >> i) & 1) === 1;
-        }
-    }
-
-    /**
-     * Reads the state of the bus as an integer value
-     */
     getValue(): number {
-        let value = 0;
+        let val = 0;
         for (let i = 0; i < this.size; i++) {
             if (this.wires[i].state) {
-                value |= (1 << i);
+                val |= (1 << i);
             }
         }
-        return value;
+        return val;
+    }
+
+    setValue(val: number) {
+        for (let i = 0; i < this.size; i++) {
+            this.wires[i].state = (val & (1 << i)) !== 0;
+        }
     }
 }
 
 export abstract class Gate {
     public name: string;
-    // Map of input wires/buses and output wires/buses for UI inspection
+    public parent: CompositeGate | null = null;
+    
+    // We keep inputs/outputs for UI rendering and hierarchical traversal
     public inputs: Record<string, Wire | Bus> = {};
     public outputs: Record<string, Wire | Bus> = {};
-    
-    constructor(name: string = "Gate") {
+
+    constructor(name: string) {
         this.name = name;
     }
+}
+
+/**
+ * The ONLY logic primitive in the entire computer.
+ */
+export class NandGate extends Gate {
+    constructor(a: Wire, b: Wire, out: Wire, name: string = "Nand") {
+        super(name);
+        this.inputs = { a, b };
+        this.outputs = { out };
+
+        // Connect the input wires physically to this gate
+        a.connect(this);
+        b.connect(this);
+        
+        // Initial evaluation
+        Simulator.enqueue(this);
+    }
+
+    evaluate() {
+        const a = (this.inputs.a as Wire).state;
+        const b = (this.inputs.b as Wire).state;
+        // The only logical operation in the engine:
+        (this.outputs.out as Wire).state = !(a && b);
+    }
+}
+
+/**
+ * Any gate made of multiple sub-gates inherits from this.
+ */
+export class CompositeGate extends Gate {
+    public subGates: Gate[] = [];
+
+    addGate<T extends Gate>(gate: T): T {
+        gate.parent = this;
+        this.subGates.push(gate);
+        return gate;
+    }
+}
+
+export class Simulator {
+    // A Set prevents adding the same gate twice in one tick
+    private static eventQueue: Set<NandGate> = new Set();
     
+    // Statistics for the UI
+    public static gatesEvaluatedThisTick: number = 0;
+
+    static enqueue(gate: NandGate) {
+        this.eventQueue.add(gate);
+    }
+
+    static clearQueue() {
+        this.eventQueue.clear();
+    }
+
     /**
-     * Computes the output based on inputs and updates output wires.
+     * Runs the BFS propagation loop until all voltages stabilize.
      */
-    abstract evaluate(): void;
+    static stabilize() {
+        this.gatesEvaluatedThisTick = 0;
+        
+        // Safety mechanism to prevent infinite oscillation (e.g., an unstable ring oscillator)
+        let maxIterations = 100000; 
+        
+        while (this.eventQueue.size > 0 && maxIterations > 0) {
+            // Pop a gate
+            const gate = this.eventQueue.values().next().value;
+            this.eventQueue.delete(gate);
+            
+            // Evaluate its physical logic
+            gate.evaluate();
+            
+            this.gatesEvaluatedThisTick++;
+            maxIterations--;
+        }
+
+        if (maxIterations === 0) {
+            console.error("Physics Engine Error: Infinite oscillation detected!");
+        }
+    }
 }
