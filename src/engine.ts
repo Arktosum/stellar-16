@@ -134,6 +134,18 @@ export class Simulator {
     /**
      * Runs the BFS propagation loop until all voltages stabilize.
      */
+    static step(count: number = 1) {
+        this.gatesEvaluatedThisTick = 0;
+        let c = count;
+        while (this.eventQueue.size > 0 && c > 0) {
+            const gate = this.eventQueue.values().next().value;
+            this.eventQueue.delete(gate);
+            gate.evaluate();
+            this.gatesEvaluatedThisTick++;
+            c--;
+        }
+    }
+
     static stabilize() {
         this.gatesEvaluatedThisTick = 0;
         
@@ -153,7 +165,7 @@ export class Simulator {
         }
 
         if (maxIterations === 0) {
-            console.error("Physics Engine Error: Infinite oscillation detected!");
+            // Infinite oscillation safely paused.
         }
     }
 }

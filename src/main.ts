@@ -1,83 +1,77 @@
 import './style.css';
-import { Wire, Simulator, NandGate } from './engine';
+import { Wire, CompositeGate, NandGate, Simulator } from './engine';
 import { NotGate, AndGate, OrGate, XorGate } from './gates';
 
 const root = document.getElementById('root')!;
 root.innerHTML = `
-  <div class="w-full max-w-5xl p-8 relative mx-auto">
-    <!-- Abstract Background glow -->
-    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/10 rounded-full blur-[100px] pointer-events-none"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-emerald/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-    <div class="relative z-10 glass-panel p-10">
-      <header class="text-center mb-10 border-b border-white/10 pb-6">
-        <h1 class="text-4xl font-extrabold tracking-tight mb-2 text-white">
-          The <span class="neon-text-cyan">Fractal</span> Architecture
-        </h1>
-        <p class="text-gray-400 font-medium mb-6">Phase 6: True NAND-Level Physics</p>
-        <a href="/journal.html" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-neon-emerald/20 text-neon-emerald border border-neon-emerald/30 hover:bg-neon-emerald/30 font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-          Next Chapter: The Physics of Memory
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+  <div class="min-h-screen bg-[#0B0F19] text-gray-300 font-sans flex flex-col lg:flex-row overflow-hidden">
+    <div class="w-full lg:w-1/3 p-6 lg:p-10 overflow-y-auto border-r border-white/10 bg-black/40 custom-scrollbar">
+      <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-neon-cyan to-blue-500 mb-6 tracking-tight drop-shadow-[0_0_15px_rgba(0,240,255,0.5)]">Stellar-16</h1>
+      <div class="space-y-6 text-sm leading-relaxed text-gray-400">
+        <p>
+          Welcome to <strong class="text-neon-cyan font-bold">Stellar-16</strong>, a 16-bit CPU built entirely from scratch inside the browser.
+        </p>
+        <div class="p-5 bg-gray-900/50 border border-white/10 rounded-xl shadow-lg">
+          <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            The Rules of the Universe
+          </h3>
+          <ul class="list-disc pl-5 space-y-2">
+            <li>The <strong>NAND</strong> gate is the only physical component that exists.</li>
+            <li>Every abstraction (NOT, AND, OR, XOR, Memory, ALU) is literally just NAND gates wired together.</li>
+            <li>The logic is evaluated by an Event-Driven Physics Engine. When a wire's voltage changes, it physically propagates electricity to connected gates.</li>
+          </ul>
+        </div>
+        <p>
+          Click the <strong class="text-neon-cyan">Inputs</strong> on the right to inject electricity into the circuit. Watch how it cascades through the raw NAND components to compute the final output.
+        </p>
+        <a href="/journal.html" class="mt-8 inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+            Explore the Physics of Memory
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
         </a>
-      </header>
-
-      <div class="bg-black/40 border border-white/5 rounded-xl p-8 shadow-inner">
-        <!-- SLEEK TAB SELECTOR -->
-        <div class="flex flex-col md:flex-row items-center justify-between mb-10 gap-6">
-          <h2 class="text-xl font-bold text-gray-200 flex items-center gap-3">
-            <svg class="w-5 h-5 text-neon-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            Internal Schematic Viewer
-          </h2>
-          
-          <div id="tab-container" class="flex items-center gap-1 bg-gray-900/60 p-1.5 rounded-xl border border-white/5 shadow-inner">
-            <button data-gate="NAND" class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold bg-neon-cyan/20 text-neon-cyan shadow-[0_0_10px_rgba(0,240,255,0.3)] transition-all">NAND</button>
-            <button data-gate="NOT" class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all">NOT</button>
-            <button data-gate="AND" class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all">AND</button>
-            <button data-gate="OR" class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all">OR</button>
-            <button data-gate="XOR" class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all">XOR</button>
+      </div>
+    </div>
+    <div class="w-full lg:w-2/3 p-4 lg:p-8 relative flex flex-col justify-center items-center">
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.05)_0%,transparent_70%)] pointer-events-none"></div>
+      <div class="bg-black/60 border border-white/10 rounded-2xl p-6 w-full max-w-4xl shadow-2xl relative z-10 backdrop-blur-md">
+        <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+          <h2 class="text-2xl font-bold text-white tracking-tight">Interactive Physics Engine</h2>
+          <div class="flex gap-2 bg-gray-900/80 p-1.5 rounded-lg border border-white/5">
+            <button class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold bg-neon-cyan/20 text-neon-cyan shadow-[0_0_10px_rgba(0,240,255,0.3)] transition-all" data-gate="NAND">NAND</button>
+            <button class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all" data-gate="NOT">NOT</button>
+            <button class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all" data-gate="AND">AND</button>
+            <button class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all" data-gate="OR">OR</button>
+            <button class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all" data-gate="XOR">XOR</button>
+            <button class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all" data-gate="OSC">OSC</button>
           </div>
         </div>
-
-        <!-- FRACTAL SVG CANVAS -->
-        <div class="flex justify-center items-center py-10 min-h-[350px]">
-          <svg id="schematic-svg" viewBox="0 0 280 120" class="w-full max-w-2xl drop-shadow-2xl overflow-visible transition-all duration-500">
+        <div class="w-full bg-gray-900/50 rounded-xl border border-white/5 p-8 flex justify-center min-h-[250px]">
+          <svg id="schematic-svg" viewBox="0 0 300 120" class="w-full max-w-lg transition-all duration-500">
             <defs>
               <g id="nand-icon">
                 <path d="M 0 0 L 15 0 A 15 15 0 0 1 15 30 L 0 30 Z" fill="#1e293b" stroke="#475569" stroke-width="2" />
                 <circle cx="34" cy="15" r="4" fill="#1e293b" stroke="#475569" stroke-width="2" />
               </g>
+              <g id="not-icon">
+                <path d="M 0 0 L 25 15 L 0 30 Z" fill="#1e293b" stroke="#475569" stroke-width="2" />
+                <circle cx="29" cy="15" r="4" fill="#1e293b" stroke="#475569" stroke-width="2" />
+              </g>
             </defs>
-            <g id="schematic-content">
-              <!-- Dynamic SVG content injected here -->
-            </g>
+            <g id="schematic-content"></g>
           </svg>
         </div>
-
-        <div class="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-          <div class="flex items-center gap-3 text-sm text-gray-400">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-            <span>Physics Engine</span>
-          </div>
-          <div class="font-mono bg-black/50 px-4 py-2 rounded-lg border border-white/5 text-gray-300">
-            <span id="eval-count" class="text-neon-cyan font-bold">0</span> gates evaluated
-          </div>
+        <div class="mt-6 flex justify-between items-center text-sm font-mono text-gray-400">
+          <span>Engine: <span class="text-neon-cyan">Stabilized</span></span>
+          <span>Evaluated Gates: <span id="eval-count" class="text-white font-bold">0</span></span>
         </div>
       </div>
     </div>
   </div>
 `;
 
-const wireA = new Wire("A");
-const wireB = new Wire("B");
-const wireOut = new Wire("Out");
-let currentActiveGate: any = null;
-let activeGateType: string = "NAND";
-
 const COLOR_OFF = '#374151'; 
 const COLOR_ON = '#00f0ff'; 
 const COLOR_OUT_ON = '#10b981'; 
 
-// Render Helpers
 const drawInput = (id: string, x: number, y: number, label: string) => `
     <g id="btn-toggle-${id}" class="cursor-pointer group">
       <circle id="node-${id}" cx="${x}" cy="${y}" r="8" fill="${COLOR_OFF}" class="transition-all duration-300 group-hover:stroke-white group-hover:stroke-2" />
@@ -90,6 +84,9 @@ const drawWire = (id: string, d: string) => `
 const drawNand = (x: number, y: number) => `
     <use href="#nand-icon" x="${x}" y="${y}" />
 `;
+const drawNot = (x: number, y: number) => `
+    <use href="#not-icon" x="${x}" y="${y}" />
+`;
 const drawOutput = (x: number, y: number) => `
     <g id="glow-out">
       <circle id="node-out" cx="${x}" cy="${y}" r="8" fill="${COLOR_OFF}" class="transition-all duration-300" />
@@ -97,17 +94,24 @@ const drawOutput = (x: number, y: number) => `
     </g>
 `;
 
+const wireA = new Wire("A");
+const wireB = new Wire("B");
+const wireOut = new Wire("Out");
+
+let currentActiveGate: CompositeGate | NandGate | NotGate | AndGate | OrGate | XorGate;
+let activeGateType = "NAND";
+
 const gateLayouts: Record<string, { render: () => string, setup: () => void }> = {
     "NAND": {
         setup: () => currentActiveGate = new NandGate(wireA, wireB, wireOut, "Test_NAND"),
         render: () => `
-            ${drawInput('a', 30, 40, 'A')}
-            ${drawInput('b', 30, 80, 'B')}
-            ${drawWire('in-a', 'M 30 40 L 100 40 L 100 50 L 120 50')}
-            ${drawWire('in-b', 'M 30 80 L 100 80 L 100 70 L 120 70')}
-            ${drawNand(120, 45)}
-            ${drawWire('out', 'M 158 60 L 230 60')}
-            ${drawOutput(230, 60)}
+            ${drawInput('a', 20, 25, 'A')}
+            ${drawInput('b', 20, 95, 'B')}
+            ${drawWire('in-a', 'M 34 25 L 120 25 L 120 50 L 150 50')}
+            ${drawWire('in-b', 'M 34 95 L 120 95 L 120 70 L 150 70')}
+            ${drawNand(150, 45)}
+            ${drawWire('out', 'M 188 60 L 260 60')}
+            ${drawOutput(260, 60)}
         `
     },
     "NOT": {
@@ -149,8 +153,8 @@ const gateLayouts: Record<string, { render: () => string, setup: () => void }> =
             ${drawNand(70, 70)}
             
             <!-- NAND -->
-            ${drawWire('mid-a', 'M 108 35 L 120 35 L 120 50 L 150 50')}
-            ${drawWire('mid-b', 'M 108 85 L 120 85 L 120 70 L 150 70')}
+            ${drawWire('mid-a', 'M 108 35 L 125 35 L 125 50 L 150 50')}
+            ${drawWire('mid-b', 'M 108 85 L 125 85 L 125 70 L 150 70')}
             ${drawNand(150, 45)}
             
             ${drawWire('out', 'M 188 60 L 250 60')}
@@ -174,7 +178,7 @@ const gateLayouts: Record<string, { render: () => string, setup: () => void }> =
             ${drawNand(130, 10)}
             
             <!-- NAND 3 (bottom) -->
-            ${drawWire('in-b-3', 'M 40 95 L 40 105 L 130 105 L 130 95')}
+            ${drawWire('in-b-3', 'M 40 95 L 40 105 L 120 105 L 120 95 L 130 95')}
             ${drawWire('mid-1-bot', 'M 128 60 L 128 75 L 130 75')}
             ${drawNand(130, 70)}
             
@@ -186,10 +190,44 @@ const gateLayouts: Record<string, { render: () => string, setup: () => void }> =
             ${drawWire('out', 'M 228 60 L 260 60')}
             ${drawOutput(260, 60)}
         `
+    },
+    "OSC": {
+        setup: () => {
+            currentActiveGate = new CompositeGate("Test_OSC");
+            const n1 = new NotGate(wireOut, wireA, "N1");
+            const n2 = new NotGate(wireA, wireB, "N2");
+            const n3 = new NotGate(wireB, wireOut, "N3");
+            currentActiveGate.addGate(n1);
+            currentActiveGate.addGate(n2);
+            currentActiveGate.addGate(n3);
+            wireOut.state = false; // Kickstart the instability
+        },
+        render: () => `
+            <text x="145" y="15" fill="#9ca3af" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">RING OSCILLATOR</text>
+            ${drawWire('w3', 'M 223 60 L 250 60 L 250 100 L 40 100 L 40 60 L 50 60')}
+            ${drawNot(50, 45)} <!-- N1 -->
+            ${drawWire('w1', 'M 83 60 L 110 60')}
+            ${drawNot(110, 45)} <!-- N2 -->
+            ${drawWire('w2', 'M 143 60 L 170 60')}
+            ${drawNot(170, 45)} <!-- N3 -->
+            
+            ${drawOutput(280, 60)}
+            ${drawWire('out', 'M 203 60 L 280 60')}
+        `
     }
 };
 
+let oscFrame: number;
+function tickOscillator() {
+    if (activeGateType === 'OSC') {
+        Simulator.step(1);
+        updateUI();
+        oscFrame = requestAnimationFrame(tickOscillator);
+    }
+}
+
 function loadGate(gateType: string) {
+    cancelAnimationFrame(oscFrame);
     activeGateType = gateType;
     Simulator.clearQueue();
     wireA.disconnectAll();
@@ -213,6 +251,10 @@ function loadGate(gateType: string) {
     
     bindUIEvents();
     updateUI();
+
+    if (gateType === 'OSC') {
+        tickOscillator();
+    }
 }
 
 function bindUIEvents() {
@@ -262,7 +304,7 @@ function updateUI() {
         updateColor('wire-in-a-2', wireA.state);
     }
     
-    if (activeGateType !== 'NOT') {
+    if (activeGateType !== 'NOT' && activeGateType !== 'OSC') {
         updateColor('node-b', wireB.state);
         updateColor('wire-in-b', wireB.state);
         if (activeGateType === 'XOR') {
@@ -273,26 +315,28 @@ function updateUI() {
 
     // Internal Wires based on physics state!
     if (activeGateType === 'AND') {
-        // subGates[0] is NAND
-        const midState = (currentActiveGate as AndGate).subGates[0].outputs.out.state;
+        const midState = ((currentActiveGate as AndGate).subGates[0].outputs.out as Wire).state;
         updateColor('wire-mid', midState);
     }
     else if (activeGateType === 'OR') {
-        // subGates[0] is NOT A, subGates[1] is NOT B
-        const midAState = (currentActiveGate as OrGate).subGates[0].outputs.out.state;
-        const midBState = (currentActiveGate as OrGate).subGates[1].outputs.out.state;
+        const midAState = ((currentActiveGate as OrGate).subGates[0].outputs.out as Wire).state;
+        const midBState = ((currentActiveGate as OrGate).subGates[1].outputs.out as Wire).state;
         updateColor('wire-mid-a', midAState);
         updateColor('wire-mid-b', midBState);
     }
     else if (activeGateType === 'XOR') {
-        // subGates[0] is NAND1 (center), subGates[1] is NAND2 (top), subGates[2] is NAND3 (bottom)
-        const mid1State = (currentActiveGate as XorGate).subGates[0].outputs.out.state;
-        const mid2State = (currentActiveGate as XorGate).subGates[1].outputs.out.state;
-        const mid3State = (currentActiveGate as XorGate).subGates[2].outputs.out.state;
+        const mid1State = ((currentActiveGate as XorGate).subGates[0].outputs.out as Wire).state;
+        const mid2State = ((currentActiveGate as XorGate).subGates[1].outputs.out as Wire).state;
+        const mid3State = ((currentActiveGate as XorGate).subGates[2].outputs.out as Wire).state;
         updateColor('wire-mid-1-top', mid1State);
         updateColor('wire-mid-1-bot', mid1State);
         updateColor('wire-mid-2', mid2State);
         updateColor('wire-mid-3', mid3State);
+    }
+    else if (activeGateType === 'OSC') {
+        updateColor('wire-w3', wireOut.state);
+        updateColor('wire-w1', wireA.state);
+        updateColor('wire-w2', wireB.state);
     }
 
     // Output

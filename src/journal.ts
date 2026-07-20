@@ -1,123 +1,114 @@
 import './style.css';
-import { Wire, Simulator } from './engine';
-import { DLatch, DFlipFlop } from './memory';
+import { Wire, Simulator, CompositeGate } from './engine';
+import { SrLatch, DLatch, DFlipFlop } from './memory';
 
 const root = document.getElementById('root')!;
 root.innerHTML = `
-  <div class="min-h-screen bg-[#0B0F19] text-gray-300 font-sans flex overflow-hidden">
+  <div class="min-h-screen bg-[#0B0F19] text-gray-300 font-sans flex flex-col lg:flex-row overflow-hidden">
     <!-- Left: The Journal -->
-    <div class="w-1/2 p-12 overflow-y-auto border-r border-white/10 bg-black/40 custom-scrollbar">
+    <div class="w-full lg:w-1/3 p-6 lg:p-10 overflow-y-auto border-r border-white/10 bg-black/40 custom-scrollbar">
       <a href="/" class="inline-flex items-center gap-2 text-neon-cyan hover:text-white transition-colors mb-8 font-bold">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         Back to Logic Gates
       </a>
       
-      <h1 class="text-5xl font-extrabold text-white mb-6 tracking-tight">The Physics of Memory</h1>
+      <h1 class="text-4xl font-extrabold text-white mb-6 tracking-tight">The Physics of Memory</h1>
       
-      <div class="space-y-6 text-lg leading-relaxed text-gray-400">
+      <div class="space-y-6 text-sm leading-relaxed text-gray-400">
         <p>
-          Up until now, our gates have been <strong class="text-neon-emerald">Combinational</strong>. This means electricity flows in one direction: from inputs to outputs. If you change an input, the output instantly changes. The circuit has no concept of time, and no memory of what happened a microsecond ago.
-        </p>
-        <p>
-          To build a computer, we need <strong class="text-neon-cyan">Sequential Logic</strong>—a way to trap an electrical signal in a loop so it remembers its state indefinitely. 
+          Up until now, our gates have been <strong class="text-neon-emerald">Combinational</strong>. The circuit has no concept of time, and no memory of what happened a microsecond ago. To build a computer, we need <strong class="text-neon-cyan">Sequential Logic</strong>—a way to trap an electrical signal in a loop.
         </p>
         
-        <div class="p-6 bg-gray-900/50 border border-neon-cyan/20 rounded-xl my-8 shadow-[0_0_15px_rgba(0,240,255,0.05)]">
-          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
-            <svg class="w-5 h-5 text-neon-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            1. The D-Latch
+        <div class="p-5 bg-gray-900/50 border border-white/10 rounded-xl shadow-lg">
+          <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            1. The SR-Latch (The Foundation)
           </h3>
-          <p class="text-sm mb-4">
-            By cross-coupling two NAND gates (feeding their outputs into each other's inputs), we create a bistable feedback loop. We add two more NAND gates to steer the input. 
-            <br/><br/>
-            When <strong class="text-white">Enable (E) is HIGH</strong>, the latch becomes "transparent", and the output <strong class="text-white">Q</strong> follows the <strong class="text-white">Data (D)</strong> pin. When Enable is LOW, the loop is locked, ignoring Data entirely!
+          <p>
+            By cross-coupling two NAND gates, we create a bistable feedback loop. This is the atomic unit of memory. Pulling <strong class="text-white">SET</strong> High traps a '1' in the loop. Pulling <strong class="text-white">RESET</strong> High traps a '0'.
           </p>
         </div>
 
-        <div class="p-6 bg-gray-900/50 border border-neon-emerald/20 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
-            <svg class="w-5 h-5 text-neon-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            2. The Master-Slave D-Flip-Flop
+        <div class="p-5 bg-gray-900/50 border border-neon-cyan/20 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.05)]">
+          <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            <svg class="w-4 h-4 text-neon-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            2. The D-Latch (Level-Triggered)
           </h3>
-          <p class="text-sm">
-            The D-Latch has a fatal flaw: if Enable is HIGH, a spike in Data immediately crashes through to the output, causing chaos in a complex CPU (race conditions).
+          <p>
+            Notice how we abstract the SR-Latch into a single modular block! We add Input Steering gates in front of it.
             <br/><br/>
-            We solve this by chaining <strong>two D-Latches</strong> together into a Master-Slave configuration. The Master listens when the Clock is HIGH. The Slave outputs when the Clock falls LOW. Data only moves forward on the <em>falling edge</em> of the clock pulse, keeping the CPU perfectly synchronized!
+            When <strong class="text-white">Enable (E) is HIGH</strong>, the latch is "transparent" and output <strong class="text-white">Q</strong> follows <strong class="text-white">Data (D)</strong>. When Enable is LOW, the SR-Latch locks and ignores Data entirely!
+          </p>
+        </div>
+
+        <div class="p-5 bg-gray-900/50 border border-neon-emerald/20 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+          <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            <svg class="w-4 h-4 text-neon-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            3. The D-Flip-Flop (Edge-Triggered)
+          </h3>
+          <p>
+            The D-Latch has a fatal flaw: if Enable is HIGH, a spike in Data immediately crashes through to the output.
+            <br/><br/>
+            We solve this by chaining <strong>two abstracted D-Latches</strong> into a Master-Slave configuration. Data only moves forward on the <em>falling edge</em> of the clock pulse, keeping the CPU perfectly synchronized!
           </p>
         </div>
       </div>
     </div>
 
     <!-- Right: The Interactive Tester -->
-    <div class="w-1/2 p-8 relative flex flex-col justify-center items-center">
+    <div class="w-full lg:w-2/3 p-4 lg:p-8 relative flex flex-col justify-center items-center">
       <!-- Background Glow -->
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.05)_0%,transparent_70%)] pointer-events-none"></div>
 
-      <div class="bg-black/60 border border-white/10 rounded-2xl p-8 w-full max-w-lg shadow-2xl relative z-10 backdrop-blur-md">
+      <div class="bg-black/60 border border-white/10 rounded-2xl p-6 w-full max-w-4xl shadow-2xl relative z-10 backdrop-blur-md">
         
-        <div class="flex items-center justify-between mb-8">
+        <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
           <h2 class="text-2xl font-bold text-white tracking-tight">Interactive Tester</h2>
           <div class="flex gap-2 bg-gray-900/80 p-1.5 rounded-lg border border-white/5">
+            <button id="btn-srlatch" class="tester-tab px-4 py-1.5 rounded-md text-sm font-bold text-gray-500 hover:text-gray-300 transition-all">SR-Latch</button>
             <button id="btn-dlatch" class="tester-tab px-4 py-1.5 rounded-md text-sm font-bold bg-neon-cyan/20 text-neon-cyan transition-all">D-Latch</button>
             <button id="btn-dff" class="tester-tab px-4 py-1.5 rounded-md text-sm font-bold text-gray-500 hover:text-gray-300 transition-all">D-Flip-Flop</button>
           </div>
         </div>
 
-        <div class="flex justify-between items-center mb-10 px-4">
-          <!-- Inputs -->
-          <div class="flex flex-col gap-6">
-            <button id="btn-in-d" class="group relative flex items-center gap-4">
-              <div class="w-12 h-12 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center text-lg font-bold text-gray-400 transition-all shadow-inner group-hover:border-white">
-                0
-              </div>
-              <span class="text-gray-400 font-mono font-bold tracking-widest">DATA (D)</span>
-            </button>
-            <button id="btn-in-clk" class="group relative flex items-center gap-4">
-              <div class="w-12 h-12 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center text-lg font-bold text-gray-400 transition-all shadow-inner group-hover:border-white">
-                0
-              </div>
-              <span id="clk-label" class="text-gray-400 font-mono font-bold tracking-widest">ENABLE</span>
-            </button>
-          </div>
+        <div class="flex flex-col mb-4 items-center gap-4">
+           <button id="btn-auto-clock" class="px-6 py-2 rounded-full border border-gray-600 text-gray-400 font-bold hover:bg-gray-800 transition-all text-sm flex items-center gap-2">
+             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+             <span id="btn-auto-text">Auto-Pulse Enable</span>
+           </button>
+        </div>
 
-          <!-- Schematic Abstraction (SVG) -->
-          <div class="flex-1 flex justify-center px-4">
-            <svg viewBox="0 0 100 100" class="w-32 h-32 drop-shadow-lg">
-              <rect x="10" y="10" width="80" height="80" rx="10" fill="#1e293b" stroke="#475569" stroke-width="4" />
-              <!-- D pin -->
-              <line x1="0" y1="30" x2="10" y2="30" stroke="#475569" stroke-width="4" />
-              <text x="20" y="35" fill="#9ca3af" font-family="monospace" font-size="14" font-weight="bold">D</text>
-              <!-- CLK/E pin -->
-              <line x1="0" y1="70" x2="10" y2="70" stroke="#475569" stroke-width="4" />
-              <path d="M 10 60 L 20 70 L 10 80" fill="none" stroke="#9ca3af" stroke-width="2" /> <!-- Clock triangle -->
-              <!-- Q pin -->
-              <line x1="90" y1="30" x2="100" y2="30" stroke="#475569" stroke-width="4" />
-              <text x="75" y="35" fill="#9ca3af" font-family="monospace" font-size="14" font-weight="bold">Q</text>
-              <!-- QBar pin -->
-              <line x1="90" y1="70" x2="100" y2="70" stroke="#475569" stroke-width="4" />
-              <circle cx="94" cy="70" r="3" fill="#1e293b" stroke="#9ca3af" stroke-width="2" /> <!-- Inversion bubble -->
-              <text x="60" y="75" fill="#9ca3af" font-family="monospace" font-size="14" font-weight="bold">!Q</text>
-            </svg>
-          </div>
+        <!-- Schematic Abstraction (SVG) -->
+        <div class="w-full flex justify-center mb-6">
+          <svg id="schematic-svg" viewBox="-60 -20 480 170" class="w-full transition-all duration-500 overflow-visible">
+            <defs>
+              <g id="nand-icon">
+                <path d="M 0 0 L 15 0 A 15 15 0 0 1 15 30 L 0 30 Z" fill="#1e293b" stroke="#475569" stroke-width="2" />
+                <circle cx="34" cy="15" r="4" fill="#1e293b" stroke="#475569" stroke-width="2" />
+              </g>
+              <g id="not-icon">
+                <path d="M 0 0 L 25 15 L 0 30 Z" fill="#1e293b" stroke="#475569" stroke-width="2" />
+                <circle cx="29" cy="15" r="4" fill="#1e293b" stroke="#475569" stroke-width="2" />
+              </g>
+            </defs>
+            <g id="schematic-content"></g>
+          </svg>
+        </div>
 
-          <!-- Outputs -->
-          <div class="flex flex-col gap-6 items-end">
-            <div class="flex items-center gap-4">
-              <span class="text-neon-emerald font-mono font-bold tracking-widest">Q</span>
-              <div id="out-q" class="w-12 h-12 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center text-lg font-bold text-gray-400 transition-all shadow-inner">
-                0
-              </div>
-            </div>
-            <div class="flex items-center gap-4">
-              <span class="text-gray-500 font-mono font-bold tracking-widest">Q_BAR</span>
-              <div id="out-qbar" class="w-12 h-12 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center text-lg font-bold text-gray-400 transition-all shadow-inner">
-                1
-              </div>
-            </div>
+        <!-- Timing Diagram (Smooth Canvas) -->
+        <div class="bg-gray-900/50 p-4 rounded-xl border border-white/5 mb-6">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-gray-400 tracking-wider uppercase">Oscilloscope (Real-Time)</span>
+          </div>
+          <div class="relative w-full h-32 bg-black/40 rounded-lg border border-gray-800 overflow-hidden">
+             <!-- Canvas Overlays for Labels -->
+             <div class="absolute left-2 top-2 text-[10px] text-gray-400 font-mono" id="label-top">D</div>
+             <div class="absolute left-2 top-12 text-[10px] text-neon-cyan font-mono" id="label-mid">E</div>
+             <div class="absolute left-2 top-22 text-[10px] text-neon-emerald font-mono" id="label-bot">Q</div>
+             <canvas id="timing-canvas" width="1000" height="128" class="absolute inset-0 w-full h-full"></canvas>
           </div>
         </div>
 
-        <div class="bg-gray-900/50 p-4 rounded-xl border border-white/5 flex justify-between items-center text-sm font-mono text-gray-400">
+        <div class="flex justify-between items-center text-sm font-mono text-gray-400">
           <span>Engine: <span class="text-neon-cyan">Stabilized</span></span>
           <span>Evaluated Gates: <span id="eval-count" class="text-white font-bold">0</span></span>
         </div>
@@ -126,86 +117,362 @@ root.innerHTML = `
   </div>
 `;
 
-const inD = new Wire("D");
-const inClk = new Wire("CLK");
+const COLOR_OFF = '#374151'; 
+const COLOR_ON = '#00f0ff'; 
+const COLOR_OUT_ON = '#10b981'; 
+
+const drawWire = (id: string, d: string) => `
+    <path id="wire-${id}" d="${d}" fill="none" stroke="${COLOR_OFF}" stroke-width="2" class="transition-all duration-300" stroke-linejoin="round" />
+`;
+const drawNand = (x: number, y: number, id: string) => `
+    <use href="#nand-icon" x="${x}" y="${y}" id="gate-${id}" class="transition-all duration-300" />
+`;
+const drawNot = (x: number, y: number, id: string) => `
+    <use href="#not-icon" x="${x}" y="${y}" id="gate-${id}" class="transition-all duration-300" />
+`;
+const drawBlock = (id: string, x: number, y: number, w: number, h: number, label: string) => `
+    <rect id="${id}" x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="#1e293b" stroke="#475569" stroke-width="2" class="transition-all duration-300" />
+    <text x="${x + w/2}" y="${y + h/2 + 4}" fill="#9ca3af" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">${label}</text>
+`;
+
+const drawInput = (id: string, x: number, y: number, label: string) => `
+    <g id="btn-toggle-${id}" class="cursor-pointer group">
+      <circle id="node-${id}" cx="${x}" cy="${y}" r="14" fill="#1f2937" stroke="${COLOR_OFF}" stroke-width="2" class="transition-all duration-300 group-hover:stroke-white" />
+      <text id="text-${id}" x="${x}" y="${y+5}" fill="${COLOR_OFF}" font-family="monospace" font-size="14" font-weight="bold" text-anchor="middle">0</text>
+      <text x="${x}" y="${y+32}" fill="#9ca3af" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">${label}</text>
+    </g>
+`;
+
+const drawOutput = (id: string, x: number, y: number, label: string) => `
+    <g>
+      <circle id="node-${id}" cx="${x}" cy="${y}" r="14" fill="#1f2937" stroke="${COLOR_OFF}" stroke-width="2" class="transition-all duration-300" />
+      <text id="text-${id}" x="${x}" y="${y+5}" fill="${COLOR_OFF}" font-family="monospace" font-size="14" font-weight="bold" text-anchor="middle">0</text>
+      <text x="${x}" y="${y+32}" fill="#9ca3af" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">${label}</text>
+    </g>
+`;
+
+const inTop = new Wire("Top");
+const inBot = new Wire("Bot");
 const outQ = new Wire("Q");
 const outQBar = new Wire("QBar");
 
-let currentMode: 'LATCH' | 'DFF' = 'LATCH';
+let currentMode: 'SR' | 'LATCH' | 'DFF' = 'LATCH';
+let clockInterval: any = null;
+let isAutoClock = false;
+let currentCircuit: CompositeGate | null = null;
+
+function renderSVG() {
+    let svg = '';
+    if (currentMode === 'SR') {
+        document.getElementById('schematic-svg')!.setAttribute('viewBox', '-60 -20 340 150');
+        
+        svg += drawNot(70, 10, 'sr_not_r');
+        svg += drawNot(70, 80, 'sr_not_s');
+
+        svg += drawNand(140, 10, 'sr_nand_q');
+        svg += drawNand(140, 80, 'sr_nand_qbar');
+        
+        svg += drawWire('sr_q-feedback', `M 178 25 L 190 25 L 190 60 L 120 60 L 120 85 L 140 85`);
+        svg += drawWire('sr_qbar-feedback', `M 178 95 L 200 95 L 200 120 L 110 120 L 110 35 L 140 35`);
+        
+        svg += drawInput('in-top', 20, 25, 'RESET');
+        svg += drawWire('in-top-wire', 'M 34 25 L 70 25');
+        svg += drawWire('sr-notr-out', 'M 103 25 L 140 25');
+        
+        svg += drawInput('in-bot', 20, 95, 'SET');
+        svg += drawWire('in-bot-wire', 'M 34 95 L 70 95');
+        svg += drawWire('sr-nots-out', 'M 103 95 L 140 95');
+        
+        svg += drawWire('out-q-wire', 'M 178 25 L 240 25');
+        svg += drawOutput('out-q', 254, 25, 'Q');
+        
+        svg += drawWire('out-qbar-wire', 'M 178 95 L 240 95');
+        svg += drawOutput('out-qbar', 254, 95, 'Q&#773;');
+
+        document.getElementById('label-top')!.innerText = 'R';
+        document.getElementById('label-mid')!.innerText = 'S';
+        document.getElementById('btn-auto-text')!.innerText = 'Auto-Pulse SET';
+    } 
+    else if (currentMode === 'LATCH') {
+        document.getElementById('schematic-svg')!.setAttribute('viewBox', '-60 -20 480 150');
+        
+        svg += drawNot(50, 70, 'm_notD');
+        svg += drawNand(110, 10, 'm_nand_s');
+        svg += drawNand(110, 80, 'm_nand_r');
+        
+        svg += drawBlock('m_sr', 180, 15, 60, 90, 'SR');
+        
+        svg += drawWire('m_d-to-not', `M 45 85 L 50 85 M 45 85 L 45 25 L 110 25`);
+        svg += drawWire('m_not-to-nand_r', `M 83 85 L 110 85`);
+        
+        svg += drawWire('m_s-to-sr', `M 148 25 L 180 25`);
+        svg += drawWire('m_r-to-sr', `M 148 95 L 180 95`);
+
+        svg += drawInput('in-top', 20, 85, 'D');
+        svg += drawWire('in-top-wire', 'M 34 85 L 45 85');
+        
+        svg += drawInput('in-bot', 20, 125, 'E');
+        svg += drawWire('in-bot-wire', 'M 34 125 L 90 125 L 90 45 L 110 45 M 90 125 L 90 105 L 110 105');
+        
+        svg += drawWire('out-q-wire', 'M 240 35 L 300 35');
+        svg += drawOutput('out-q', 314, 35, 'Q');
+        
+        svg += drawWire('out-qbar-wire', 'M 240 85 L 300 85');
+        svg += drawOutput('out-qbar', 314, 85, 'Q&#773;');
+
+        document.getElementById('label-top')!.innerText = 'D';
+        document.getElementById('label-mid')!.innerText = 'E';
+        document.getElementById('btn-auto-text')!.innerText = 'Auto-Pulse Enable';
+    } 
+    else {
+        document.getElementById('schematic-svg')!.setAttribute('viewBox', '-60 -20 620 150');
+        
+        svg += drawBlock('m_latch', 100, 20, 100, 80, 'MASTER');
+        svg += drawNot(230, 95, 'c_not');
+        svg += drawBlock('s_latch', 320, 20, 100, 80, 'SLAVE');
+
+        svg += drawInput('in-top', 20, 40, 'D');
+        svg += drawWire('in-top-wire', 'M 34 40 L 100 40');
+        
+        svg += drawInput('in-bot', 20, 115, 'CLOCK');
+        svg += drawWire('in-bot-wire', 'M 34 115 L 70 115 L 70 80 L 100 80 M 70 115 L 210 115 L 210 110 L 230 110');
+        
+        svg += drawWire('master-to-slave', 'M 200 40 L 320 40');
+        svg += drawWire('slave-clk', 'M 263 110 L 280 110 L 280 80 L 320 80');
+
+        svg += drawWire('out-q-wire', 'M 420 40 L 480 40');
+        svg += drawOutput('out-q', 494, 40, 'Q');
+        
+        svg += drawWire('out-qbar-wire', 'M 420 80 L 480 80');
+        svg += drawOutput('out-qbar', 494, 80, 'Q&#773;');
+
+        document.getElementById('label-top')!.innerText = 'D';
+        document.getElementById('label-mid')!.innerText = 'C';
+        document.getElementById('btn-auto-text')!.innerText = 'Auto-Pulse Clock';
+    }
+    document.getElementById('schematic-content')!.innerHTML = svg;
+
+    document.getElementById('btn-toggle-in-top')!.onclick = () => {
+        inTop.state = !inTop.state;
+        Simulator.stabilize();
+        updateUI();
+    };
+
+    document.getElementById('btn-toggle-in-bot')!.onclick = () => {
+        inBot.state = !inBot.state;
+        Simulator.stabilize();
+        updateUI();
+    };
+}
 
 function loadCircuit() {
     Simulator.clearQueue();
-    inD.disconnectAll();
-    inClk.disconnectAll();
+    inTop.disconnectAll();
+    inBot.disconnectAll();
     outQ.disconnectAll();
     outQBar.disconnectAll();
 
-    if (currentMode === 'LATCH') {
-        new DLatch(inD, inClk, outQ, outQBar, "Tester_DLatch");
-        document.getElementById('clk-label')!.innerText = "ENABLE (E)";
+    renderSVG();
+
+    if (currentMode === 'SR') {
+        currentCircuit = new SrLatch(inTop, inBot, outQ, outQBar, "Tester_SR");
+        inTop.state = false;
+        inBot.state = false;
+    } else if (currentMode === 'LATCH') {
+        currentCircuit = new DLatch(inTop, inBot, outQ, outQBar, "Tester_DLatch");
+        inTop.state = false;
+        inBot.state = false;
     } else {
-        new DFlipFlop(inD, inClk, outQ, outQBar, "Tester_DFF");
-        document.getElementById('clk-label')!.innerText = "CLOCK (C)";
+        currentCircuit = new DFlipFlop(inTop, inBot, outQ, outQBar, "Tester_DFF");
+        inTop.state = false;
+        inBot.state = false;
     }
 
-    // Force initial state correctly
-    // The physics engine needs a kick to stabilize cross-coupled latches from undefined state
-    inD.state = false;
-    inClk.state = false;
     Simulator.stabilize();
     
-    // Quick pulse to set initial state to 0
-    inClk.state = true;
+    // Kickstart
+    inBot.state = !inBot.state;
     Simulator.stabilize();
-    inClk.state = false;
+    inBot.state = !inBot.state;
     Simulator.stabilize();
 
+    history = [];
     updateUI();
 }
 
-const updateBtn = (id: string, state: boolean, isOut: boolean = false) => {
-    const el = document.getElementById(id)!;
-    el.innerText = state ? '1' : '0';
-    if (state) {
-        el.className = `w-12 h-12 rounded-full bg-${isOut ? 'neon-emerald/20' : 'neon-cyan/20'} border-2 border-${isOut ? 'neon-emerald' : 'neon-cyan'} flex items-center justify-center text-lg font-bold text-white transition-all shadow-[0_0_15px_${isOut ? 'rgba(16,185,129,0.4)' : 'rgba(0,240,255,0.4)'}]`;
-    } else {
-        el.className = `w-12 h-12 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center text-lg font-bold text-gray-400 transition-all shadow-inner ${!isOut ? 'group-hover:border-white' : ''}`;
+const updateNode = (id: string, state: boolean, isOutput: boolean = false) => {
+    const color = state ? (isOutput ? COLOR_OUT_ON : COLOR_ON) : COLOR_OFF;
+    const textColor = state ? '#ffffff' : COLOR_OFF;
+    
+    const circle = document.getElementById(`node-${id}`);
+    const text = document.getElementById(`text-${id}`);
+    
+    if (circle) {
+        circle.setAttribute('stroke', color);
+        if (state) {
+            circle.style.filter = `drop-shadow(0 0 10px ${color})`;
+        } else {
+            circle.style.filter = 'none';
+        }
+    }
+    if (text) {
+        text.innerHTML = state ? '1' : '0';
+        text.setAttribute('fill', textColor);
     }
 };
 
-function updateUI() {
-    updateBtn('btn-in-d', inD.state);
-    updateBtn('btn-in-clk', inClk.state);
-    updateBtn('out-q', outQ.state, true);
-    updateBtn('out-qbar', outQBar.state, true);
-    document.getElementById('eval-count')!.innerText = Simulator.gatesEvaluatedThisTick.toString();
+function updateColor(id: string, state: boolean, isOutput: boolean = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const color = state ? (isOutput ? COLOR_OUT_ON : COLOR_ON) : COLOR_OFF;
+    if (el.tagName === 'path' || el.tagName === 'rect' || el.tagName === 'use') {
+        el.setAttribute('stroke', color);
+    }
 }
 
-document.getElementById('btn-in-d')!.onclick = () => {
-    inD.state = !inD.state;
-    Simulator.stabilize();
-    updateUI();
+function updateUI() {
+    updateNode('in-top', inTop.state);
+    updateNode('in-bot', inBot.state);
+    updateNode('out-q', outQ.state, true);
+    updateNode('out-qbar', outQBar.state, true);
+    document.getElementById('eval-count')!.innerText = Simulator.gatesEvaluatedThisTick.toString();
+
+    updateColor('wire-in-top-wire', inTop.state);
+    updateColor('wire-in-bot-wire', inBot.state);
+    updateColor('wire-out-q-wire', outQ.state, true);
+    updateColor('wire-out-qbar-wire', outQBar.state, true);
+
+    if (currentMode === 'SR') {
+        const sr = currentCircuit as SrLatch;
+        const notR = (sr.subGates[1].outputs.out as Wire).state;
+        const notS = (sr.subGates[0].outputs.out as Wire).state;
+        const q = outQ.state;
+        const qbar = outQBar.state;
+
+        updateColor('wire-sr-notr-out', notR);
+        updateColor('wire-sr-nots-out', notS);
+        updateColor('wire-sr_q-feedback', q);
+        updateColor('wire-sr_qbar-feedback', qbar);
+    } 
+    else if (currentMode === 'LATCH') {
+        const dl = currentCircuit as DLatch;
+        const notD = (dl.subGates[0].outputs.out as Wire).state;
+        const sbar = (dl.subGates[1].outputs.out as Wire).state;
+        const rbar = (dl.subGates[2].outputs.out as Wire).state;
+        
+        updateColor('wire-m_d-to-not', inTop.state);
+        updateColor('wire-m_d-to-nand_s', inTop.state);
+        updateColor('wire-m_not-to-nand_r', notD);
+        updateColor('wire-m_s-to-sr', sbar);
+        updateColor('wire-m_r-to-sr', rbar);
+        
+        updateColor('m_sr', outQ.state, true);
+    } 
+    else {
+        const dff = currentCircuit as DFlipFlop;
+        const clockBar = (dff.subGates[0].outputs.out as Wire).state;
+        const masterQ = ((dff.subGates[1] as DLatch).subGates[3].outputs.outQ as Wire).state;
+        
+        updateColor('wire-master-to-slave', masterQ);
+        updateColor('wire-slave-clk', clockBar);
+        updateColor('m_latch', masterQ, true);
+        updateColor('s_latch', outQ.state, true);
+    }
+}
+
+// Smooth Oscilloscope Engine
+type DataPoint = { t: number, d: boolean, c: boolean, q: boolean };
+let history: DataPoint[] = [];
+// animFrame removed
+const TIME_WINDOW_MS = 5000;
+
+function startTimingEngine() {
+    function loop() {
+        const now = Date.now();
+        history.push({ t: now, d: inTop.state, c: inBot.state, q: outQ.state });
+        history = history.filter(h => now - h.t <= TIME_WINDOW_MS);
+        
+        drawCanvasOscilloscope(now);
+        requestAnimationFrame(loop);
+    }
+    loop();
+}
+
+function drawCanvasOscilloscope(now: number) {
+    const canvas = document.getElementById('timing-canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    const w = canvas.width;
+    const h = canvas.height;
+    
+    ctx.clearRect(0, 0, w, h);
+    if (history.length === 0) return;
+
+    ctx.lineWidth = 2;
+    const yOffsets = [20, 64, 108]; 
+    const colors = ['#9ca3af', '#00f0ff', '#10b981'];
+
+    for (let sig = 0; sig < 3; sig++) {
+        ctx.strokeStyle = colors[sig];
+        ctx.beginPath();
+        
+        let first = true;
+        for (let i = 0; i < history.length; i++) {
+            const pt = history[i];
+            const state = sig === 0 ? pt.d : sig === 1 ? pt.c : pt.q;
+            
+            const x = w - ((now - pt.t) / TIME_WINDOW_MS) * w;
+            const y = yOffsets[sig] + (state ? -10 : 10);
+            
+            if (first) {
+                ctx.moveTo(x, y);
+                first = false;
+            } else {
+                const prev = history[i-1];
+                const prevState = sig === 0 ? prev.d : sig === 1 ? prev.c : prev.q;
+                const prevY = yOffsets[sig] + (prevState ? -10 : 10);
+                if (state !== prevState) {
+                    ctx.lineTo(x, prevY);
+                }
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.stroke();
+    }
+}
+
+const setActiveTab = (id: string) => {
+    ['btn-srlatch', 'btn-dlatch', 'btn-dff'].forEach(btn => {
+        document.getElementById(btn)!.className = btn === id 
+            ? "tester-tab px-4 py-1.5 rounded-md text-sm font-bold bg-neon-cyan/20 text-neon-cyan transition-all"
+            : "tester-tab px-4 py-1.5 rounded-md text-sm font-bold text-gray-500 hover:text-gray-300 transition-all";
+    });
 };
 
-document.getElementById('btn-in-clk')!.onclick = () => {
-    inClk.state = !inClk.state;
-    Simulator.stabilize();
-    updateUI();
+document.getElementById('btn-auto-clock')!.onclick = () => {
+    isAutoClock = !isAutoClock;
+    const btn = document.getElementById('btn-auto-clock')!;
+    if (isAutoClock) {
+        btn.innerHTML = `<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg> Stop Auto-Pulse`;
+        btn.className = "px-6 py-2 rounded-full border border-red-500/50 text-red-400 font-bold hover:bg-red-900/20 transition-all text-sm flex items-center gap-2";
+        clockInterval = setInterval(() => {
+            inBot.state = !inBot.state;
+            Simulator.stabilize();
+            updateUI();
+        }, 800);
+    } else {
+        const text = currentMode === 'SR' ? 'Auto-Pulse SET' : (currentMode === 'LATCH' ? 'Auto-Pulse Enable' : 'Auto-Pulse Clock');
+        btn.innerHTML = `<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ${text}`;
+        btn.className = "px-6 py-2 rounded-full border border-gray-600 text-gray-400 font-bold hover:bg-gray-800 transition-all text-sm flex items-center gap-2";
+        clearInterval(clockInterval);
+    }
 };
 
-document.getElementById('btn-dlatch')!.onclick = (e) => {
-    currentMode = 'LATCH';
-    document.getElementById('btn-dlatch')!.className = "tester-tab px-4 py-1.5 rounded-md text-sm font-bold bg-neon-cyan/20 text-neon-cyan transition-all";
-    document.getElementById('btn-dff')!.className = "tester-tab px-4 py-1.5 rounded-md text-sm font-bold text-gray-500 hover:text-gray-300 transition-all";
-    loadCircuit();
-};
-
-document.getElementById('btn-dff')!.onclick = (e) => {
-    currentMode = 'DFF';
-    document.getElementById('btn-dff')!.className = "tester-tab px-4 py-1.5 rounded-md text-sm font-bold bg-neon-cyan/20 text-neon-cyan transition-all";
-    document.getElementById('btn-dlatch')!.className = "tester-tab px-4 py-1.5 rounded-md text-sm font-bold text-gray-500 hover:text-gray-300 transition-all";
-    loadCircuit();
-};
+document.getElementById('btn-srlatch')!.onclick = () => { currentMode = 'SR'; setActiveTab('btn-srlatch'); loadCircuit(); };
+document.getElementById('btn-dlatch')!.onclick = () => { currentMode = 'LATCH'; setActiveTab('btn-dlatch'); loadCircuit(); };
+document.getElementById('btn-dff')!.onclick = () => { currentMode = 'DFF'; setActiveTab('btn-dff'); loadCircuit(); };
 
 // Init
+setActiveTab('btn-dlatch');
 loadCircuit();
+startTimingEngine();
