@@ -63,6 +63,12 @@ export class Bus {
             this.wires[i].state = (val & (1 << i)) !== 0;
         }
     }
+
+    disconnectAll() {
+        for (let i = 0; i < this.size; i++) {
+            this.wires[i].disconnectAll();
+        }
+    }
 }
 
 export abstract class Gate {

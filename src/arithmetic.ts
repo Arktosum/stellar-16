@@ -42,20 +42,52 @@ export class FullAdder extends Gate {
     evaluate() {}
 }
 
-export class Add16 extends Gate {
+export class Add4 extends Gate {
     public fullAdders: FullAdder[] = [];
+
+    constructor(
+        a0: Wire, a1: Wire, a2: Wire, a3: Wire,
+        b0: Wire, b1: Wire, b2: Wire, b3: Wire,
+        cIn: Wire,
+        s0: Wire, s1: Wire, s2: Wire, s3: Wire,
+        cOut: Wire,
+        name: string = "Add4"
+    ) {
+        super(name);
+        let c1 = new Wire("c1");
+        let c2 = new Wire("c2");
+        let c3 = new Wire("c3");
+
+        this.fullAdders.push(new FullAdder(a0, b0, cIn, s0, c1));
+        this.fullAdders.push(new FullAdder(a1, b1, c1, s1, c2));
+        this.fullAdders.push(new FullAdder(a2, b2, c2, s2, c3));
+        this.fullAdders.push(new FullAdder(a3, b3, c3, s3, cOut));
+    }
+    evaluate() {}
+}
+
+export class Add16 extends Gate {
+    public add4s: Add4[] = [];
 
     constructor(aBus: Bus, bBus: Bus, outBus: Bus, name: string = "Add16") {
         super(name);
         this.inputs = { a: aBus, b: bBus };
         this.outputs = { out: outBus };
 
-        let carryIn = new Wire("carryIn0"); // Unconnected wire defaults to false (ground)
-        for (let i = 0; i < aBus.size; i++) {
-            let carryOut = new Wire(`carryOut${i}`);
-            this.fullAdders.push(new FullAdder(aBus.wires[i], bBus.wires[i], carryIn, outBus.wires[i], carryOut));
-            carryIn = carryOut;
-        }
+        let cIn0 = new Wire("carryIn0"); // Grounded implicitly
+        let cOut0 = new Wire("carryOut0");
+        let cOut1 = new Wire("carryOut1");
+        let cOut2 = new Wire("carryOut2");
+        let cOut3 = new Wire("carryOut3");
+
+        const a = aBus.wires;
+        const b = bBus.wires;
+        const s = outBus.wires;
+
+        this.add4s.push(new Add4(a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3], cIn0, s[0], s[1], s[2], s[3], cOut0));
+        this.add4s.push(new Add4(a[4], a[5], a[6], a[7], b[4], b[5], b[6], b[7], cOut0, s[4], s[5], s[6], s[7], cOut1));
+        this.add4s.push(new Add4(a[8], a[9], a[10], a[11], b[8], b[9], b[10], b[11], cOut1, s[8], s[9], s[10], s[11], cOut2));
+        this.add4s.push(new Add4(a[12], a[13], a[14], a[15], b[12], b[13], b[14], b[15], cOut2, s[12], s[13], s[14], s[15], cOut3));
     }
     evaluate() {}
 }

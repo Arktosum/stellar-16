@@ -1,16 +1,14 @@
+import './stars';
 import './style.css';
 import { Wire, Simulator, CompositeGate } from './engine';
 import { SrLatch, DLatch, DFlipFlop } from './memory';
 
 const root = document.getElementById('root')!;
 root.innerHTML = `
-  <div class="min-h-screen bg-[#0B0F19] text-gray-300 font-sans flex flex-col lg:flex-row overflow-hidden">
+  
+  <div class="min-h-screen bg-transparent text-gray-300 font-sans flex flex-col lg:flex-row overflow-hidden">
     <!-- Left: The Journal -->
     <div class="w-full lg:w-1/3 p-6 lg:p-10 overflow-y-auto border-r border-white/10 bg-black/40 custom-scrollbar">
-      <a href="/" class="inline-flex items-center gap-2 text-neon-cyan hover:text-white transition-colors mb-8 font-bold">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        Back to Logic Gates
-      </a>
       
       <h1 class="text-4xl font-extrabold text-white mb-6 tracking-tight">The Physics of Memory</h1>
       
@@ -23,9 +21,22 @@ root.innerHTML = `
           <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
             1. The SR-Latch (The Foundation)
           </h3>
-          <p>
-            By cross-coupling two NAND gates, we create a bistable feedback loop. This is the atomic unit of memory. Pulling <strong class="text-white">SET</strong> High traps a '1' in the loop. Pulling <strong class="text-white">RESET</strong> High traps a '0'.
+          <p class="mb-4">
+            By cross-coupling two NAND gates, we create a bistable feedback loop. This is the atomic unit of memory. Pulling <strong class="text-white">SET</strong> High traps a '1' in the loop. Pulling <strong class="text-white">RESET</strong> High traps a '0'. Setting both High is <em>invalid</em> as it forces both outputs High, breaking the Q/Q̅ rule.
           </p>
+          <div class="overflow-hidden rounded-lg border border-white/10">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-black/50 text-gray-400">
+                <tr><th class="px-3 py-2">SET</th><th class="px-3 py-2">RESET</th><th class="px-3 py-2">Q</th><th class="px-3 py-2">Q̅</th><th class="px-3 py-2">Action</th></tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                <tr id="tt-sr-00" class="transition-colors duration-300"><td class="px-3 py-2">0</td><td class="px-3 py-2">0</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2 text-gray-500">Hold State</td></tr>
+                <tr id="tt-sr-01" class="transition-colors duration-300"><td class="px-3 py-2">0</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-red-400">0</td><td class="px-3 py-2 text-neon-emerald">1</td><td class="px-3 py-2 text-red-400">Reset</td></tr>
+                <tr id="tt-sr-10" class="transition-colors duration-300"><td class="px-3 py-2">1</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-neon-emerald">1</td><td class="px-3 py-2 text-red-400">0</td><td class="px-3 py-2 text-neon-emerald">Set</td></tr>
+                <tr id="tt-sr-11" class="transition-colors duration-300"><td class="px-3 py-2">1</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-neon-emerald">1</td><td class="px-3 py-2 text-neon-emerald">1</td><td class="px-3 py-2 text-yellow-500">Invalid</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="p-5 bg-gray-900/50 border border-neon-cyan/20 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.05)]">
@@ -33,11 +44,22 @@ root.innerHTML = `
             <svg class="w-4 h-4 text-neon-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             2. The D-Latch (Level-Triggered)
           </h3>
-          <p>
-            Notice how we abstract the SR-Latch into a single modular block! We add Input Steering gates in front of it.
-            <br/><br/>
-            When <strong class="text-white">Enable (E) is HIGH</strong>, the latch is "transparent" and output <strong class="text-white">Q</strong> follows <strong class="text-white">Data (D)</strong>. When Enable is LOW, the SR-Latch locks and ignores Data entirely!
+          <p class="mb-4">
+            We abstract the SR-Latch into a single module and add Input Steering gates. When <strong class="text-white">Enable (E) is HIGH</strong>, the latch is "transparent" and output <strong class="text-white">Q</strong> follows <strong class="text-white">Data (D)</strong>. When Enable is LOW, the SR-Latch locks and ignores Data entirely, preventing invalid states!
           </p>
+          <div class="overflow-hidden rounded-lg border border-neon-cyan/20">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-neon-cyan/10 text-neon-cyan">
+                <tr><th class="px-3 py-2">E</th><th class="px-3 py-2">D</th><th class="px-3 py-2">Q</th><th class="px-3 py-2">Q̅</th><th class="px-3 py-2">Action</th></tr>
+              </thead>
+              <tbody class="divide-y divide-neon-cyan/10">
+                <tr id="tt-dl-00" class="transition-colors duration-300"><td class="px-3 py-2">0</td><td class="px-3 py-2">0</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2 text-gray-500">Hold State</td></tr>
+                <tr id="tt-dl-01" class="transition-colors duration-300"><td class="px-3 py-2">0</td><td class="px-3 py-2">1</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2 text-gray-500">Hold State</td></tr>
+                <tr id="tt-dl-10" class="transition-colors duration-300"><td class="px-3 py-2">1</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-red-400">0</td><td class="px-3 py-2 text-neon-emerald">1</td><td class="px-3 py-2 text-red-400">Reset</td></tr>
+                <tr id="tt-dl-11" class="transition-colors duration-300"><td class="px-3 py-2">1</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-neon-emerald">1</td><td class="px-3 py-2 text-red-400">0</td><td class="px-3 py-2 text-neon-emerald">Set</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="p-5 bg-gray-900/50 border border-neon-emerald/20 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.05)]">
@@ -45,12 +67,34 @@ root.innerHTML = `
             <svg class="w-4 h-4 text-neon-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             3. The D-Flip-Flop (Edge-Triggered)
           </h3>
-          <p>
-            The D-Latch has a fatal flaw: if Enable is HIGH, a spike in Data immediately crashes through to the output.
-            <br/><br/>
-            We solve this by chaining <strong>two abstracted D-Latches</strong> into a Master-Slave configuration. Data only moves forward on the <em>falling edge</em> of the clock pulse, keeping the CPU perfectly synchronized!
+          <p class="mb-4">
+            The D-Latch's flaw: if Enable is HIGH, a spike in Data crashes through. We solve this by chaining two D-Latches. The Master reads Data when Clock is LOW. The Slave outputs it on the <em>rising edge</em> (or falling edge, depending on design) of the clock pulse, keeping CPUs synchronized!
           </p>
+          <div class="overflow-hidden rounded-lg border border-neon-emerald/20">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-neon-emerald/10 text-neon-emerald">
+                <tr><th class="px-3 py-2">CLK</th><th class="px-3 py-2">D</th><th class="px-3 py-2">Q</th><th class="px-3 py-2">Q̅</th><th class="px-3 py-2">Action</th></tr>
+              </thead>
+              <tbody class="divide-y divide-neon-emerald/10">
+                <tr id="tt-dff-00" class="transition-colors duration-300"><td class="px-3 py-2">0</td><td class="px-3 py-2">X</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2 text-gray-500">Hold State</td></tr>
+                <tr id="tt-dff-10" class="transition-colors duration-300"><td class="px-3 py-2">1</td><td class="px-3 py-2">X</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2">Latch</td><td class="px-3 py-2 text-gray-500">Hold State</td></tr>
+                <tr id="tt-dff-rise0" class="transition-colors duration-300"><td class="px-3 py-2">↑</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-red-400">0</td><td class="px-3 py-2 text-neon-emerald">1</td><td class="px-3 py-2 text-red-400">Reset</td></tr>
+                <tr id="tt-dff-rise1" class="transition-colors duration-300"><td class="px-3 py-2">↑</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-neon-emerald">1</td><td class="px-3 py-2 text-red-400">0</td><td class="px-3 py-2 text-neon-emerald">Set</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
+      
+      <div class="mt-8 space-y-4">
+          <a href="/" class="flex items-center justify-center gap-2 w-full py-3 px-4 bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+              Back to Physics Engine
+          </a>
+          <a href="/alu.html" class="flex items-center justify-center gap-2 w-full py-3 px-4 bg-neon-emerald/10 hover:bg-neon-emerald/20 border border-neon-emerald/50 text-neon-emerald font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              Next: The Arithmetic Logic Unit
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </a>
       </div>
     </div>
 
@@ -101,9 +145,9 @@ root.innerHTML = `
           </div>
           <div class="relative w-full h-32 bg-black/40 rounded-lg border border-gray-800 overflow-hidden">
              <!-- Canvas Overlays for Labels -->
-             <div class="absolute left-2 top-2 text-[10px] text-gray-400 font-mono" id="label-top">D</div>
-             <div class="absolute left-2 top-12 text-[10px] text-neon-cyan font-mono" id="label-mid">E</div>
-             <div class="absolute left-2 top-22 text-[10px] text-neon-emerald font-mono" id="label-bot">Q</div>
+             <div class="absolute left-2 text-[10px] text-gray-400 font-mono" style="top: 14px;" id="label-top">D</div>
+             <div class="absolute left-2 text-[10px] text-neon-cyan font-mono" style="top: 58px;" id="label-mid">E</div>
+             <div class="absolute left-2 text-[10px] text-neon-emerald font-mono" style="top: 102px;" id="label-bot">Q</div>
              <canvas id="timing-canvas" width="1000" height="128" class="absolute inset-0 w-full h-full"></canvas>
           </div>
         </div>
@@ -137,16 +181,16 @@ const drawBlock = (id: string, x: number, y: number, w: number, h: number, label
 
 const drawInput = (id: string, x: number, y: number, label: string) => `
     <g id="btn-toggle-${id}" class="cursor-pointer group">
-      <circle id="node-${id}" cx="${x}" cy="${y}" r="14" fill="#1f2937" stroke="${COLOR_OFF}" stroke-width="2" class="transition-all duration-300 group-hover:stroke-white" />
-      <text id="text-${id}" x="${x}" y="${y+5}" fill="${COLOR_OFF}" font-family="monospace" font-size="14" font-weight="bold" text-anchor="middle">0</text>
+      <circle id="node-${id}" cx="${x}" cy="${y}" r="14" fill="${COLOR_OFF}" class="transition-all duration-300 group-hover:stroke-white group-hover:stroke-2" />
+      <text id="text-${id}" x="${x}" y="${y+5}" fill="#9ca3af" font-family="monospace" font-size="14" font-weight="bold" text-anchor="middle">0</text>
       <text x="${x}" y="${y+32}" fill="#9ca3af" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">${label}</text>
     </g>
 `;
 
 const drawOutput = (id: string, x: number, y: number, label: string) => `
     <g>
-      <circle id="node-${id}" cx="${x}" cy="${y}" r="14" fill="#1f2937" stroke="${COLOR_OFF}" stroke-width="2" class="transition-all duration-300" />
-      <text id="text-${id}" x="${x}" y="${y+5}" fill="${COLOR_OFF}" font-family="monospace" font-size="14" font-weight="bold" text-anchor="middle">0</text>
+      <circle id="node-${id}" cx="${x}" cy="${y}" r="14" fill="${COLOR_OFF}" class="transition-all duration-300" />
+      <text id="text-${id}" x="${x}" y="${y+5}" fill="#9ca3af" font-family="monospace" font-size="14" font-weight="bold" text-anchor="middle">0</text>
       <text x="${x}" y="${y+32}" fill="#9ca3af" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">${label}</text>
     </g>
 `;
@@ -164,24 +208,24 @@ let currentCircuit: CompositeGate | null = null;
 function renderSVG() {
     let svg = '';
     if (currentMode === 'SR') {
-        document.getElementById('schematic-svg')!.setAttribute('viewBox', '-60 -20 340 150');
+        document.getElementById('schematic-svg')!.setAttribute('viewBox', '0 -10 300 150');
         
-        svg += drawNot(70, 10, 'sr_not_r');
-        svg += drawNot(70, 80, 'sr_not_s');
+        svg += drawNot(70, 0, 'sr_not_r');
+        svg += drawNot(70, 70, 'sr_not_s');
 
         svg += drawNand(140, 10, 'sr_nand_q');
         svg += drawNand(140, 80, 'sr_nand_qbar');
         
-        svg += drawWire('sr_q-feedback', `M 178 25 L 190 25 L 190 60 L 120 60 L 120 85 L 140 85`);
+        svg += drawWire('sr_q-feedback', `M 178 25 L 190 25 L 190 60 L 120 60 L 120 105 L 140 105`);
         svg += drawWire('sr_qbar-feedback', `M 178 95 L 200 95 L 200 120 L 110 120 L 110 35 L 140 35`);
         
-        svg += drawInput('in-top', 20, 25, 'RESET');
-        svg += drawWire('in-top-wire', 'M 34 25 L 70 25');
-        svg += drawWire('sr-notr-out', 'M 103 25 L 140 25');
+        svg += drawInput('in-top', 20, 15, 'RESET');
+        svg += drawWire('in-top-wire', 'M 34 15 L 70 15');
+        svg += drawWire('sr-notr-out', 'M 103 15 L 140 15');
         
-        svg += drawInput('in-bot', 20, 95, 'SET');
-        svg += drawWire('in-bot-wire', 'M 34 95 L 70 95');
-        svg += drawWire('sr-nots-out', 'M 103 95 L 140 95');
+        svg += drawInput('in-bot', 20, 85, 'SET');
+        svg += drawWire('in-bot-wire', 'M 34 85 L 70 85');
+        svg += drawWire('sr-nots-out', 'M 103 85 L 140 85');
         
         svg += drawWire('out-q-wire', 'M 178 25 L 240 25');
         svg += drawOutput('out-q', 254, 25, 'Q');
@@ -194,7 +238,7 @@ function renderSVG() {
         document.getElementById('btn-auto-text')!.innerText = 'Auto-Pulse SET';
     } 
     else if (currentMode === 'LATCH') {
-        document.getElementById('schematic-svg')!.setAttribute('viewBox', '-60 -20 480 150');
+        document.getElementById('schematic-svg')!.setAttribute('viewBox', '0 -10 360 150');
         
         svg += drawNot(50, 70, 'm_notD');
         svg += drawNand(110, 10, 'm_nand_s');
@@ -202,49 +246,49 @@ function renderSVG() {
         
         svg += drawBlock('m_sr', 180, 15, 60, 90, 'SR');
         
-        svg += drawWire('m_d-to-not', `M 45 85 L 50 85 M 45 85 L 45 25 L 110 25`);
+        svg += drawInput('in-top', 20, 15, 'D');
+        svg += drawWire('in-top-wire', 'M 34 15 L 45 15');
+        svg += drawWire('m_d-to-not', `M 45 15 L 45 85 L 50 85 M 45 15 L 110 15`);
+        
         svg += drawWire('m_not-to-nand_r', `M 83 85 L 110 85`);
         
         svg += drawWire('m_s-to-sr', `M 148 25 L 180 25`);
         svg += drawWire('m_r-to-sr', `M 148 95 L 180 95`);
 
-        svg += drawInput('in-top', 20, 85, 'D');
-        svg += drawWire('in-top-wire', 'M 34 85 L 45 85');
+        svg += drawInput('in-bot', 20, 105, 'E');
+        svg += drawWire('in-bot-wire', 'M 34 105 L 90 105 L 90 35 L 110 35 M 90 105 L 110 105');
         
-        svg += drawInput('in-bot', 20, 125, 'E');
-        svg += drawWire('in-bot-wire', 'M 34 125 L 90 125 L 90 45 L 110 45 M 90 125 L 90 105 L 110 105');
+        svg += drawWire('out-q-wire', 'M 240 25 L 300 25');
+        svg += drawOutput('out-q', 314, 25, 'Q');
         
-        svg += drawWire('out-q-wire', 'M 240 35 L 300 35');
-        svg += drawOutput('out-q', 314, 35, 'Q');
-        
-        svg += drawWire('out-qbar-wire', 'M 240 85 L 300 85');
-        svg += drawOutput('out-qbar', 314, 85, 'Q&#773;');
+        svg += drawWire('out-qbar-wire', 'M 240 95 L 300 95');
+        svg += drawOutput('out-qbar', 314, 95, 'Q&#773;');
 
         document.getElementById('label-top')!.innerText = 'D';
         document.getElementById('label-mid')!.innerText = 'E';
         document.getElementById('btn-auto-text')!.innerText = 'Auto-Pulse Enable';
     } 
     else {
-        document.getElementById('schematic-svg')!.setAttribute('viewBox', '-60 -20 620 150');
+        document.getElementById('schematic-svg')!.setAttribute('viewBox', '0 -10 540 150');
         
-        svg += drawBlock('m_latch', 100, 20, 100, 80, 'MASTER');
-        svg += drawNot(230, 95, 'c_not');
-        svg += drawBlock('s_latch', 320, 20, 100, 80, 'SLAVE');
+        svg += drawBlock('m_latch', 100, 15, 100, 90, 'MASTER');
+        svg += drawNot(230, 90, 'c_not');
+        svg += drawBlock('s_latch', 320, 15, 100, 90, 'SLAVE');
 
-        svg += drawInput('in-top', 20, 40, 'D');
-        svg += drawWire('in-top-wire', 'M 34 40 L 100 40');
+        svg += drawInput('in-top', 20, 25, 'D');
+        svg += drawWire('in-top-wire', 'M 34 25 L 100 25');
         
-        svg += drawInput('in-bot', 20, 115, 'CLOCK');
-        svg += drawWire('in-bot-wire', 'M 34 115 L 70 115 L 70 80 L 100 80 M 70 115 L 210 115 L 210 110 L 230 110');
+        svg += drawInput('in-bot', 20, 105, 'CLOCK');
+        svg += drawWire('in-bot-wire', 'M 34 105 L 100 105 M 80 105 L 80 125 L 210 125 L 210 105 L 230 105');
         
-        svg += drawWire('master-to-slave', 'M 200 40 L 320 40');
-        svg += drawWire('slave-clk', 'M 263 110 L 280 110 L 280 80 L 320 80');
+        svg += drawWire('master-to-slave', 'M 200 25 L 320 25');
+        svg += drawWire('slave-clk', 'M 263 105 L 320 105');
 
-        svg += drawWire('out-q-wire', 'M 420 40 L 480 40');
-        svg += drawOutput('out-q', 494, 40, 'Q');
+        svg += drawWire('out-q-wire', 'M 420 25 L 480 25');
+        svg += drawOutput('out-q', 494, 25, 'Q');
         
-        svg += drawWire('out-qbar-wire', 'M 420 80 L 480 80');
-        svg += drawOutput('out-qbar', 494, 80, 'Q&#773;');
+        svg += drawWire('out-qbar-wire', 'M 420 95 L 480 95');
+        svg += drawOutput('out-qbar', 494, 95, 'Q&#773;');
 
         document.getElementById('label-top')!.innerText = 'D';
         document.getElementById('label-mid')!.innerText = 'C';
@@ -302,13 +346,13 @@ function loadCircuit() {
 
 const updateNode = (id: string, state: boolean, isOutput: boolean = false) => {
     const color = state ? (isOutput ? COLOR_OUT_ON : COLOR_ON) : COLOR_OFF;
-    const textColor = state ? '#ffffff' : COLOR_OFF;
+    const textColor = state ? '#0B0F19' : '#9ca3af';
     
     const circle = document.getElementById(`node-${id}`);
     const text = document.getElementById(`text-${id}`);
     
     if (circle) {
-        circle.setAttribute('stroke', color);
+        circle.setAttribute('fill', color);
         if (state) {
             circle.style.filter = `drop-shadow(0 0 10px ${color})`;
         } else {
@@ -330,7 +374,47 @@ function updateColor(id: string, state: boolean, isOutput: boolean = false) {
     }
 }
 
+
+let lastClk = false;
+function updateTruthTables() {
+    // Reset all row highlights
+    document.querySelectorAll('[id^="tt-"]').forEach(el => {
+        el.classList.remove('bg-white/10', 'bg-neon-cyan/20', 'bg-neon-emerald/20', 'bg-neon-emerald/40', 'font-bold');
+    });
+
+    if (currentMode === 'SR') {
+        const s = inBot.state ? 1 : 0;
+        const r = inTop.state ? 1 : 0;
+        document.getElementById(`tt-sr-${s}${r}`)?.classList.add('bg-white/10');
+    } else if (currentMode === 'LATCH') {
+        const e = inBot.state ? 1 : 0;
+        const d = inTop.state ? 1 : 0;
+        document.getElementById(`tt-dl-${e}${d}`)?.classList.add('bg-neon-cyan/20');
+    } else {
+        const c = inBot.state;
+        const d = inTop.state ? 1 : 0;
+        
+        if (c && !lastClk) {
+            // Rising edge!
+            const riseRow = document.getElementById(`tt-dff-rise${d}`);
+            if (riseRow) {
+                riseRow.classList.add('bg-neon-emerald/40', 'font-bold');
+                setTimeout(() => {
+                    riseRow.classList.remove('bg-neon-emerald/40', 'font-bold');
+                }, 800);
+            }
+        }
+        
+        // Steady state highlighting
+        const rowId = c ? '10' : '00';
+        document.getElementById(`tt-dff-${rowId}`)?.classList.add('bg-neon-emerald/20');
+        
+        lastClk = c;
+    }
+}
+
 function updateUI() {
+    updateTruthTables();
     updateNode('in-top', inTop.state);
     updateNode('in-bot', inBot.state);
     updateNode('out-q', outQ.state, true);

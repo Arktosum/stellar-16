@@ -1,10 +1,11 @@
+import './stars';
 import './style.css';
 import { Wire, CompositeGate, NandGate, Simulator } from './engine';
 import { NotGate, AndGate, OrGate, XorGate } from './gates';
 
 const root = document.getElementById('root')!;
 root.innerHTML = `
-  <div class="min-h-screen bg-[#0B0F19] text-gray-300 font-sans flex flex-col lg:flex-row overflow-hidden">
+  <div class="min-h-screen bg-transparent text-gray-300 font-sans flex flex-col lg:flex-row overflow-hidden">
     <div class="w-full lg:w-1/3 p-6 lg:p-10 overflow-y-auto border-r border-white/10 bg-black/40 custom-scrollbar">
       <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-neon-cyan to-blue-500 mb-6 tracking-tight drop-shadow-[0_0_15px_rgba(0,240,255,0.5)]">Stellar-16</h1>
       <div class="space-y-6 text-sm leading-relaxed text-gray-400">
@@ -21,12 +22,23 @@ root.innerHTML = `
             <li>The logic is evaluated by an Event-Driven Physics Engine. When a wire's voltage changes, it physically propagates electricity to connected gates.</li>
           </ul>
         </div>
+        
         <p>
           Click the <strong class="text-neon-cyan">Inputs</strong> on the right to inject electricity into the circuit. Watch how it cascades through the raw NAND components to compute the final output.
         </p>
+        <div id="gate-info-container" class="transition-all duration-300"></div>
+  
         <a href="/journal.html" class="mt-8 inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(0,240,255,0.2)]">
             Explore the Physics of Memory
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </a>
+        <a href="/alu.html" class="mt-4 inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-neon-emerald/10 hover:bg-neon-emerald/20 border border-neon-emerald/50 text-neon-emerald font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+            Build the Arithmetic Logic Unit
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </a>
+        <a href="/engine.html" class="mt-4 inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/50 text-purple-400 font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+            How the Simulator Works
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
         </a>
       </div>
     </div>
@@ -44,8 +56,8 @@ root.innerHTML = `
             <button class="gate-tab px-5 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-300 transition-all" data-gate="OSC">OSC</button>
           </div>
         </div>
-        <div class="w-full bg-gray-900/50 rounded-xl border border-white/5 p-8 flex justify-center min-h-[250px]">
-          <svg id="schematic-svg" viewBox="0 0 300 120" class="w-full max-w-lg transition-all duration-500">
+        <div class="w-full bg-gray-900/50 rounded-xl border border-white/5 p-8 flex flex-col items-center justify-center min-h-[250px]">
+          <svg id="schematic-svg" viewBox="-40 -10 380 140" class="w-full max-w-lg transition-all duration-500">
             <defs>
               <g id="nand-icon">
                 <path d="M 0 0 L 15 0 A 15 15 0 0 1 15 30 L 0 30 Z" fill="#1e293b" stroke="#475569" stroke-width="2" />
@@ -58,6 +70,13 @@ root.innerHTML = `
             </defs>
             <g id="schematic-content"></g>
           </svg>
+          <div id="osc-controls" class="hidden w-full max-w-sm mt-8 flex flex-col items-center gap-3">
+             <label class="text-sm font-bold text-gray-400 flex justify-between w-full">
+               <span>Propagation Delay</span>
+               <span id="osc-speed-label" class="text-neon-cyan drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]">500ms</span>
+             </label>
+             <input type="range" id="osc-speed" min="16" max="1000" step="16" value="500" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+          </div>
         </div>
         <div class="mt-6 flex justify-between items-center text-sm font-mono text-gray-400">
           <span>Engine: <span class="text-neon-cyan">Stabilized</span></span>
@@ -218,17 +237,132 @@ const gateLayouts: Record<string, { render: () => string, setup: () => void }> =
 };
 
 let oscFrame: number;
-function tickOscillator() {
+let lastOscTime = 0;
+let oscDelay = 500;
+
+function tickOscillator(timestamp: number) {
     if (activeGateType === 'OSC') {
-        Simulator.step(1);
-        updateUI();
+        if (!lastOscTime) lastOscTime = timestamp;
+        if (timestamp - lastOscTime >= oscDelay) {
+            Simulator.step(1);
+            updateUI();
+            lastOscTime = timestamp;
+        }
         oscFrame = requestAnimationFrame(tickOscillator);
     }
 }
 
+
+const gateInfoData: Record<string, string> = {
+    "NAND": `
+        <div class="p-5 bg-gray-900/50 border border-neon-cyan/20 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.05)]">
+            <h3 class="text-lg font-bold text-white mb-2">NAND (Not-AND)</h3>
+            <p class="mb-3 text-gray-400">Outputs 1 unless both inputs are 1. It is a <em>universal</em> gate, meaning every other gate in existence can be derived from it!</p>
+            <div class="overflow-hidden rounded-lg border border-neon-cyan/20">
+            <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-neon-cyan/10 text-neon-cyan">
+                <tr><th class="px-3 py-2">A</th><th class="px-3 py-2">B</th><th class="px-3 py-2">OUT</th></tr>
+                </thead>
+                <tbody class="divide-y divide-neon-cyan/10">
+                <tr id="tt-nand-00"><td class="px-3 py-2">0</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                <tr id="tt-nand-01"><td class="px-3 py-2">0</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                <tr id="tt-nand-10"><td class="px-3 py-2">1</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                <tr id="tt-nand-11"><td class="px-3 py-2">1</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-red-400">0</td></tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    `,
+    "NOT": `
+        <div class="p-5 bg-gray-900/50 border border-neon-cyan/20 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.05)]">
+            <h3 class="text-lg font-bold text-white mb-2">NOT (Inverter)</h3>
+            <p class="mb-3 text-gray-400">Simply inverts the input. It is built by tying both inputs of a NAND gate together!</p>
+            <div class="overflow-hidden rounded-lg border border-neon-cyan/20">
+            <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-neon-cyan/10 text-neon-cyan">
+                <tr><th class="px-3 py-2">IN</th><th class="px-3 py-2">OUT</th></tr>
+                </thead>
+                <tbody class="divide-y divide-neon-cyan/10">
+                <tr id="tt-not-0"><td class="px-3 py-2">0</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                <tr id="tt-not-1"><td class="px-3 py-2">1</td><td class="px-3 py-2 text-red-400">0</td></tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    `,
+    "AND": `
+        <div class="p-5 bg-gray-900/50 border border-neon-cyan/20 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.05)]">
+            <h3 class="text-lg font-bold text-white mb-2">AND</h3>
+            <p class="mb-3 text-gray-400">Outputs 1 only if BOTH inputs are 1. Built by passing a NAND gate's output through a NOT gate.</p>
+            <div class="overflow-hidden rounded-lg border border-neon-cyan/20">
+            <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-neon-cyan/10 text-neon-cyan">
+                <tr><th class="px-3 py-2">A</th><th class="px-3 py-2">B</th><th class="px-3 py-2">OUT</th></tr>
+                </thead>
+                <tbody class="divide-y divide-neon-cyan/10">
+                <tr id="tt-and-00"><td class="px-3 py-2">0</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-red-400">0</td></tr>
+                <tr id="tt-and-01"><td class="px-3 py-2">0</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-red-400">0</td></tr>
+                <tr id="tt-and-10"><td class="px-3 py-2">1</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-red-400">0</td></tr>
+                <tr id="tt-and-11"><td class="px-3 py-2">1</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    `,
+    "OR": `
+        <div class="p-5 bg-gray-900/50 border border-neon-cyan/20 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.05)]">
+            <h3 class="text-lg font-bold text-white mb-2">OR</h3>
+            <p class="mb-3 text-gray-400">Outputs 1 if EITHER input is 1. Built by negating both inputs before feeding them into a NAND gate (De Morgan's Laws!).</p>
+            <div class="overflow-hidden rounded-lg border border-neon-cyan/20">
+            <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-neon-cyan/10 text-neon-cyan">
+                <tr><th class="px-3 py-2">A</th><th class="px-3 py-2">B</th><th class="px-3 py-2">OUT</th></tr>
+                </thead>
+                <tbody class="divide-y divide-neon-cyan/10">
+                <tr id="tt-or-00"><td class="px-3 py-2">0</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-red-400">0</td></tr>
+                <tr id="tt-or-01"><td class="px-3 py-2">0</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                <tr id="tt-or-10"><td class="px-3 py-2">1</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                <tr id="tt-or-11"><td class="px-3 py-2">1</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    `,
+    "XOR": `
+        <div class="p-5 bg-gray-900/50 border border-neon-cyan/20 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.05)]">
+            <h3 class="text-lg font-bold text-white mb-2">XOR (Exclusive-OR)</h3>
+            <p class="mb-3 text-gray-400">Outputs 1 only if inputs are DIFFERENT. Built with 4 NAND gates. It's the critical building block for mathematical addition!</p>
+            <div class="overflow-hidden rounded-lg border border-neon-cyan/20">
+            <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-neon-cyan/10 text-neon-cyan">
+                <tr><th class="px-3 py-2">A</th><th class="px-3 py-2">B</th><th class="px-3 py-2">OUT</th></tr>
+                </thead>
+                <tbody class="divide-y divide-neon-cyan/10">
+                <tr id="tt-xor-00"><td class="px-3 py-2">0</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-red-400">0</td></tr>
+                <tr id="tt-xor-01"><td class="px-3 py-2">0</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                <tr id="tt-xor-10"><td class="px-3 py-2">1</td><td class="px-3 py-2">0</td><td class="px-3 py-2 text-neon-emerald">1</td></tr>
+                <tr id="tt-xor-11"><td class="px-3 py-2">1</td><td class="px-3 py-2">1</td><td class="px-3 py-2 text-red-400">0</td></tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    `,
+    "OSC": `
+        <div class="p-5 bg-gray-900/50 border border-neon-cyan/20 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.05)]">
+            <h3 class="text-lg font-bold text-white mb-2">Ring Oscillator</h3>
+            <p class="mb-3 text-gray-400">By chaining an odd number of NOT gates in a loop, the signal is constantly trying to invert itself, creating an infinite oscillation! Our physics engine prevents the browser from freezing by throttling this loop.</p>
+        </div>
+    `
+};
+
 function loadGate(gateType: string) {
     cancelAnimationFrame(oscFrame);
     activeGateType = gateType;
+    const infoContainer = document.getElementById('gate-info-container');
+    if (infoContainer) {
+        infoContainer.innerHTML = gateInfoData[gateType] || '';
+    }
+
     Simulator.clearQueue();
     wireA.disconnectAll();
     wireB.disconnectAll();
@@ -236,6 +370,16 @@ function loadGate(gateType: string) {
     
     // Update SVG
     document.getElementById('schematic-content')!.innerHTML = gateLayouts[gateType].render();
+    
+    // Toggle OSC controls
+    const oscControls = document.getElementById('osc-controls');
+    if (oscControls) {
+        if (gateType === 'OSC') {
+            oscControls.classList.remove('hidden');
+        } else {
+            oscControls.classList.add('hidden');
+        }
+    }
     
     // Update Tabs
     document.querySelectorAll('.gate-tab').forEach(tab => {
@@ -247,19 +391,24 @@ function loadGate(gateType: string) {
     });
 
     gateLayouts[gateType].setup();
-    Simulator.stabilize();
+    
+    if (gateType !== 'OSC') {
+        Simulator.stabilize();
+    }
     
     bindUIEvents();
     updateUI();
 
     if (gateType === 'OSC') {
-        tickOscillator();
+        lastOscTime = 0;
+        oscFrame = requestAnimationFrame(tickOscillator);
     }
 }
 
 function bindUIEvents() {
     const btnToggleA = document.getElementById('btn-toggle-a');
     const btnToggleB = document.getElementById('btn-toggle-b');
+    const oscSpeedSlider = document.getElementById('osc-speed') as HTMLInputElement;
 
     if (btnToggleA) {
         btnToggleA.onclick = () => {
@@ -274,6 +423,13 @@ function bindUIEvents() {
             wireB.state = !wireB.state;
             Simulator.stabilize();
             updateUI();
+        };
+    }
+
+    if (oscSpeedSlider) {
+        oscSpeedSlider.oninput = (e) => {
+            oscDelay = parseInt((e.target as HTMLInputElement).value);
+            document.getElementById('osc-speed-label')!.innerText = oscDelay + 'ms';
         };
     }
 }
@@ -295,6 +451,19 @@ function updateColor(id: string, state: boolean, isOutput: boolean = false) {
 }
 
 function updateUI() {
+
+    // Truth table highlighting
+    document.querySelectorAll('tr[id^="tt-"]').forEach(el => el.classList.remove('bg-neon-cyan/20', 'font-bold', 'text-white'));
+    
+    if (activeGateType === 'NOT') {
+        const a = wireA.state ? 1 : 0;
+        document.getElementById(`tt-not-${a}`)?.classList.add('bg-neon-cyan/20', 'font-bold', 'text-white');
+    } else if (activeGateType !== 'OSC') {
+        const a = wireA.state ? 1 : 0;
+        const b = wireB.state ? 1 : 0;
+        document.getElementById(`tt-${activeGateType.toLowerCase()}-${a}${b}`)?.classList.add('bg-neon-cyan/20', 'font-bold', 'text-white');
+    }
+
     // Inputs
     updateColor('node-a', wireA.state);
     updateColor('wire-in-a', wireA.state);
